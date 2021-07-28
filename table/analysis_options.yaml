@@ -113,7 +113,7 @@ linter:
     - empty_statements
     - exhaustive_cases
     - file_names
-    - flutter_style_todos
+    # - flutter_style_todos # CHANGED
     - hash_and_equals
     - implementation_imports
     # - invariant_booleans # too many false positives: https://github.com/dart-lang/linter/issues/811
