@@ -120,25 +120,26 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
     final RawTableDelegate newDelegate = newWidget.delegate;
     final RawTableDelegate oldDelegate = oldWidget.delegate;
     if (newDelegate != oldDelegate && (newDelegate.runtimeType != oldDelegate.runtimeType || newDelegate.shouldRebuild(oldDelegate))) {
-      renderObject.markNeedsLayoutWithRebuild(); // rebuild(); // TODO: or performRebuild? or remove performRebuild impl alltogether and just mark renderobject?
+      rebuild();
+      // renderObject.markNeedsLayoutWithRebuild(); // rebuild(); // TODO: or performRebuild? or remove performRebuild impl alltogether and just mark renderobject?
     }
   }
 
   // TODO: check inheritedwidgets.
-  // @override
-  // void performRebuild() {
-  //   super.performRebuild();
-  //   // Children list is updated during layout since we only know during layout
-  //   // which children will be visible.
-  //   renderObject.markNeedsLayoutWithRebuild();
-  // }
-
   @override
-  void reassemble() {
-    super.reassemble();
-    // Makes buildCell in delegate hot-reloadable.
+  void performRebuild() {
+    super.performRebuild();
+    // Children list is updated during layout since we only know during layout
+    // which children will be visible.
     renderObject.markNeedsLayoutWithRebuild();
   }
+
+  // @override
+  // void reassemble() {
+  //   super.reassemble();
+  //   // Makes buildCell in delegate hot-reloadable.
+  //   renderObject.markNeedsLayoutWithRebuild();
+  // }
 
   // ---- Detaching children ----
 

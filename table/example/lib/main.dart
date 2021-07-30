@@ -54,7 +54,6 @@ class _TableExampleState extends State<TableExample> {
 class ExampleRawTableDelegate extends RawTableDelegate {
   @override
   Widget buildCell(BuildContext context, int column, int row) {
-    // TODO: Changes here do not hot-reload (other builders do hot-reload).
     return Container(
       color: row.isEven
           ? (column.isEven ? Colors.red : Colors.yellow)
