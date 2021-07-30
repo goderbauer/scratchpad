@@ -12,6 +12,7 @@ class TableExampleApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Table Example',
+      scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false), // TODO: How to deal with auto-scrollbars in nested scrolling?
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),

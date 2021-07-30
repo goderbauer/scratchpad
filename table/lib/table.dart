@@ -29,14 +29,15 @@ class _RawTableScrollViewState extends State<RawTableScrollView> {
     return Scrollbar(
       controller: horizontalController,
       isAlwaysShown: true,
-      child: Scrollable(
-        controller: horizontalController,
-        axisDirection: AxisDirection.right, // TODO: make these configurable
-        viewportBuilder: (BuildContext context, ViewportOffset horizontalOffset) {
-          return Scrollbar(
-            controller: verticalController,
-            isAlwaysShown: true,
-            child: Scrollable(
+      child: Scrollbar(
+        controller: verticalController,
+        isAlwaysShown: true,
+        notificationPredicate: (ScrollNotification notification) => notification.depth == 1,
+        child: Scrollable(
+          controller: horizontalController,
+          axisDirection: AxisDirection.right, // TODO: make these configurable
+          viewportBuilder: (BuildContext context, ViewportOffset horizontalOffset) {
+            return Scrollable(
               controller: verticalController,
               axisDirection: AxisDirection.down,
               viewportBuilder: (BuildContext context, ViewportOffset verticalOffset) {
@@ -46,9 +47,9 @@ class _RawTableScrollViewState extends State<RawTableScrollView> {
                   delegate: widget.delegate,
                 );
               },
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
