@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:table/table.dart';
 
@@ -11,8 +12,9 @@ class TableExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      showPerformanceOverlay: true,
       title: 'Table Example',
-      scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false), // TODO: How to deal with auto-scrollbars in nested scrolling?
+      scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false, dragDevices: PointerDeviceKind.values.toSet()), // TODO: How to deal with auto-scrollbars in nested scrolling?
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -41,11 +43,12 @@ class _TableExampleState extends State<TableExample> {
       ),
       body: RawTableScrollView(
         delegate: delegate,
-        horizontalController: controller,
+        verticalController: controller,
       ),
       floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.adjust),
         onPressed: () {
-          controller.jumpTo(500);
+          controller.jumpTo((controller.offset + 2000) % controller.position.maxScrollExtent);
         },
       ),
     );
@@ -82,22 +85,23 @@ class ExampleRawTableDelegate extends RawTableDelegate {
 
   @override
   RawTableDimensionSpec? buildRowSpec(int row) {
+    // return const FixedRawTableDimensionSpec(35);
     switch (row % 3) {
       case 0:
         return const FixedRawTableDimensionSpec(35);
       case 1:
-        return const FixedRawTableDimensionSpec(70);
+        return const FixedRawTableDimensionSpec(50);
       case 2:
-        return const ViewportFractionRawTableDimensionSpec(0.25);
+        return const ViewportFractionRawTableDimensionSpec(0.15);
     }
     return null;
   }
 
   @override
-  int? get columnCount => 5;
+  int? get columnCount => 8;
 
   @override
-  int? get rowCount => 10;
+  int? get rowCount => 1000;
 
   @override
   bool shouldRebuild(RawTableDelegate oldDelegate) => true;
