@@ -1,67 +1,104 @@
 import 'package:flutter/material.dart';
+import 'package:table/table.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const TableExampleApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class TableExampleApp extends StatelessWidget {
+  const TableExampleApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Table Example',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const TableExample(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  final String title;
+class TableExample extends StatefulWidget {
+  const TableExample({Key? key}) : super(key: key);
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<TableExample> createState() => _TableExampleState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _TableExampleState extends State<TableExample> {
+  final RawTableDelegate delegate = ExampleRawTableDelegate();
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
+  final ScrollController controller = ScrollController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: const Text('Table Example'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headline4,
-            ),
-          ],
-        ),
+      body: RawTableScrollView(
+        delegate: delegate,
+        horizontalController: controller,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        onPressed: () {
+          controller.jumpTo(500);
+        },
       ),
     );
   }
+}
+
+class ExampleRawTableDelegate extends RawTableDelegate {
+  @override
+  Widget buildCell(BuildContext context, int column, int row) {
+    // TODO: Changes here do not hot-reload (other builders do hot-reload).
+    return Container(
+      color: row.isEven
+          ? (column.isEven ? Colors.red : Colors.yellow)
+          : (column.isEven ? Colors.blue : Colors.green),
+      child: Center(child: Text('Tile c: $column, r: $row')),
+    );
+  }
+
+  @override
+  RawTableDimensionSpec? buildColumnSpec(int column) {
+    switch (column % 5) {
+      case 0:
+        return const FixedRawTableDimensionSpec(100);
+      case 1:
+        return const ViewportFractionRawTableDimensionSpec(0.5);
+      case 2:
+        return const FixedRawTableDimensionSpec(120);
+      case 3:
+        return const FixedRawTableDimensionSpec(145);
+      case 4:
+        return const FixedRawTableDimensionSpec(200);
+    }
+    return null;
+  }
+
+  @override
+  RawTableDimensionSpec? buildRowSpec(int row) {
+    switch (row % 3) {
+      case 0:
+        return const FixedRawTableDimensionSpec(35);
+      case 1:
+        return const FixedRawTableDimensionSpec(70);
+      case 2:
+        return const ViewportFractionRawTableDimensionSpec(0.25);
+    }
+    return null;
+  }
+
+  @override
+  int? get columnCount => 5;
+
+  @override
+  int? get rowCount => 10;
+
+  @override
+  bool shouldRebuild(RawTableDelegate oldDelegate) => true;
 }
