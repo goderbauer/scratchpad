@@ -455,6 +455,7 @@ class _RenderRawTableViewport extends RenderBox {
       _unusedIndices.forEach(cellManager.removeCell);
     });
     _needsRebuild = false;
+    assert(_debugOrphans?.isEmpty ?? true);
 
     // TODO: figure out in what cases we can skip recalculating this.
     // ---- calculate content dimensions ----
