@@ -425,11 +425,15 @@ class _RenderRawTableViewport extends RenderBox {
   final SplayTreeMap<_CellIndex, RenderBox> _children = SplayTreeMap<_CellIndex, RenderBox>();
 
   @override
-  void performLayout() {
-    // Ignoring return value since we are doing a layout either way.
+  void performResize() {
+    super.performResize();
+    // Ignoring return value since we are doing a layout either way (performLayout will be invoked next).
     horizontalOffset.applyViewportDimension(size.width);
     verticalOffset.applyViewportDimension(size.height);
+  }
 
+  @override
+  void performLayout() {
     // TODO: figure out in what cases we can skip recalculating this.
     // ---- Calculate the first visible column. ----
     int column = 0;
