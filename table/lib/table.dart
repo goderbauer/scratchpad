@@ -102,7 +102,10 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
   @override
   _RenderRawTableViewport get renderObject => super.renderObject as _RenderRawTableViewport;
 
-  final Map<_CellIndex, Element> _children = <_CellIndex, Element>{};
+  Map<_CellIndex, Element> _indexToChild = <_CellIndex, Element>{}; // contains all children, incl. keyed.
+  Map<Key, Element> _keyToChild = <Key, Element>{};
+  Map<_CellIndex, Element>? _newIndexToChild; // contains all children, incl. keyed.
+  Map<Key, Element>? _newKeyToChild;
 
   // ---- Updating children ----
 
@@ -146,8 +149,12 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
 
   @override
   void forgetChild(Element child) {
+    assert(!_debugIsDoingLayout);
     super.forgetChild(child);
-    _children.remove(child.slot);
+    _indexToChild.remove(child.slot);
+    if (child.widget.key != null) {
+      _keyToChild.remove(child.widget.key);
+    }
   }
 
   // ---- Maintaining the render object tree ----
@@ -159,7 +166,7 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
 
   @override
   void moveRenderObjectChild(RenderBox child, _CellIndex oldSlot, _CellIndex newSlot) {
-    renderObject.moveCell(child, oldSlot, newSlot);
+    renderObject.moveCell(child, from: oldSlot, to: newSlot);
   }
 
   @override
@@ -171,12 +178,12 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
 
   @override
   void visitChildren(ElementVisitor visitor) {
-    _children.values.forEach(visitor);
+    _indexToChild.values.forEach(visitor);
   }
 
   @override
   List<DiagnosticsNode> debugDescribeChildren() {
-    final List<Element> children = _children.values.toList()..sort(_compareChildren);
+    final List<Element> children = _indexToChild.values.toList()..sort(_compareChildren);
     return children.map((Element child) {
       return child.toDiagnosticsNode(name: child.slot.toString());
     }).toList();
@@ -190,17 +197,47 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
 
   // ---- _CellManager implementation ----
 
-  // TODO: handle keys
+  bool get _debugIsDoingLayout => _newKeyToChild != null && _newIndexToChild != null;
+
+  @override
+  void startLayout() {
+    assert(!_debugIsDoingLayout);
+    _newIndexToChild = <_CellIndex, Element>{};
+    _newKeyToChild = <Key, Element>{};
+  }
 
   @override
   void buildCell(_CellIndex index) {
+    assert(_debugIsDoingLayout);
     owner!.buildScope(this, () {
-      final Element? oldElement = _children[index];
       final Widget newWidget = _buildCell(index);
+      final Element? oldElement = _retrieveOldElement(newWidget, index);
       final Element? newChild = updateChild(oldElement, newWidget, index);
       assert(newChild != null); // because newWidget is never null.
-      _children[index] = newChild!;
+      _newIndexToChild![index] = newChild!;
+      if (newWidget.key != null) {
+        _newKeyToChild![newWidget.key!] = newChild;
+      }
+
+      // oldElement == null && newWidget != null -> insertRenderObject
+      // oldElement != null && newWidget == null -> removeRenderObject
+      // oldElement != null && newWidget != null -> if update possible: moveRenderObject, else removeRenderObject & insertRenderObject
     });
+  }
+
+  Element? _retrieveOldElement(Widget newWidget, _CellIndex index) {
+    if (newWidget.key != null) {
+      final Element? result = _keyToChild.remove(newWidget.key);
+      if (result != null) {
+        _indexToChild.remove(result.slot);
+      }
+      return result;
+    }
+    final Element? potentialOldElement = _indexToChild[index];
+    if (potentialOldElement != null && potentialOldElement.widget.key == null) {
+      return _indexToChild.remove(index);
+    }
+    return null;
   }
 
   Widget _buildCell(_CellIndex index) {
@@ -210,13 +247,41 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
   }
 
   @override
-  void removeCell(_CellIndex index) {
-    assert(_children.containsKey(index));
-    owner!.buildScope(this, () {
-      final Element? newChild = updateChild(_children[index], null, /* slot ignored: */ null);
-      assert(newChild == null);
-      _children.remove(index);
-    });
+  void reuseCell(_CellIndex index) {
+    assert(_debugIsDoingLayout);
+    final Element? elementToReuse = _indexToChild.remove(index);
+    assert(elementToReuse != null); // has to exist since we are reusing it.
+    _newIndexToChild![index] = elementToReuse!;
+    if (elementToReuse.widget.key != null) {
+      assert(_keyToChild.containsKey(elementToReuse.widget.key));
+      assert(_keyToChild[elementToReuse.widget.key] == elementToReuse);
+      _newKeyToChild![elementToReuse.widget.key!] = _keyToChild.remove(elementToReuse.widget.key)!;
+    }
+  }
+
+  @override
+  void endLayout() {
+    assert(_debugIsDoingLayout);
+
+    // Unmount all elements that have not been reused in the layout cycle.
+    for (final Element element in _indexToChild.values) {
+      if (element.widget.key == null) {
+        // If it has a key, we handle it below.
+        updateChild(element, null, null);
+      } else {
+        assert(_keyToChild.containsValue(element));
+      }
+    }
+    for (final Element element in _keyToChild.values) {
+      assert(element.widget.key != null);
+      updateChild(element, null, null);
+    }
+
+    _indexToChild = _newIndexToChild!;
+    _keyToChild = _newKeyToChild!;
+    _newIndexToChild = null;
+    _newKeyToChild = null;
+    assert(!_debugIsDoingLayout);
   }
 }
 
@@ -236,7 +301,13 @@ class _RenderRawTableViewport extends RenderBox {
     if (_horizontalOffset == value) {
       return;
     }
+    if (attached) {
+      _horizontalOffset.removeListener(markNeedsLayout);
+    }
     _horizontalOffset = value;
+    if (attached) {
+      _horizontalOffset.addListener(markNeedsLayout);
+    }
     markNeedsLayout();
   }
 
@@ -246,7 +317,13 @@ class _RenderRawTableViewport extends RenderBox {
     if (_verticalOffset == value) {
       return;
     }
+    if (attached) {
+      _verticalOffset.removeListener(markNeedsLayout);
+    }
     _verticalOffset = value;
+    if (attached) {
+      _verticalOffset.addListener(markNeedsLayout);
+    }
     markNeedsLayout();
   }
 
@@ -256,7 +333,13 @@ class _RenderRawTableViewport extends RenderBox {
     if (_delegate == value) {
       return;
     }
+    if (attached) {
+      _delegate.removeListener(markNeedsLayoutWithRebuild);
+    }
     _delegate = value;
+    if (attached) {
+      _delegate.addListener(markNeedsLayoutWithRebuild);
+    }
     markNeedsLayout();
   }
 
@@ -267,6 +350,7 @@ class _RenderRawTableViewport extends RenderBox {
     super.attach(owner);
     _horizontalOffset.addListener(markNeedsLayout);
     _verticalOffset.addListener(markNeedsLayout);
+    _delegate.addListener(markNeedsLayoutWithRebuild);
     for (final RenderBox child in _children.values) {
       child.attach(owner);
     }
@@ -276,6 +360,7 @@ class _RenderRawTableViewport extends RenderBox {
   void detach() {
     _horizontalOffset.removeListener(markNeedsLayout);
     _verticalOffset.removeListener(markNeedsLayout);
+    _delegate.removeListener(markNeedsLayoutWithRebuild);
     for (final RenderBox child in _children.values) {
       child.detach();
     }
@@ -421,7 +506,7 @@ class _RenderRawTableViewport extends RenderBox {
     // }
 
     // ---- layout columns, rows ----
-    final Set<_CellIndex> _unusedIndices = HashSet<_CellIndex>.from(_children.keys);
+    cellManager.startLayout();
     double yPaintOffset = -offsetIntoRow;
     for (int row = firstRow; row <= lastRow; row += 1) {
       double xPaintOffset = -offsetIntoColumn;
@@ -433,11 +518,12 @@ class _RenderRawTableViewport extends RenderBox {
           invokeLayoutCallback<BoxConstraints>((BoxConstraints _) {
             cellManager.buildCell(index);
           });
+        } else {
+          cellManager.reuseCell(index);
         }
 
         assert(_children.containsKey(index));
         final RenderBox cell = _children[index]!;
-        _unusedIndices.remove(index);
         final BoxConstraints cellConstraints = BoxConstraints.tightFor(
           width: columnWidth,
           height: rowHeight,
@@ -452,9 +538,10 @@ class _RenderRawTableViewport extends RenderBox {
     }
 
     invokeLayoutCallback<BoxConstraints>((BoxConstraints _) {
-      _unusedIndices.forEach(cellManager.removeCell);
+      cellManager.endLayout();
     });
     _needsRebuild = false;
+    _debugOrphans?.forEach(print);
     assert(_debugOrphans?.isEmpty ?? true);
 
     // TODO: figure out in what cases we can skip recalculating this.
@@ -546,12 +633,12 @@ class _RenderRawTableViewport extends RenderBox {
     adoptChild(child);
   }
 
-  void moveCell(RenderBox child, _CellIndex oldSlot, _CellIndex newSlot) {
-    if (_children[oldSlot] == child) {
-      _children.remove(oldSlot);
+  void moveCell(RenderBox child, {required _CellIndex from, required _CellIndex to}) {
+    if (_children[from] == child) {
+      _children.remove(from);
     }
-    assert(_debugTrackOrphans(newOrphan: _children[newSlot], noLongerOrphan: child));
-    _children[newSlot] = child;
+    assert(_debugTrackOrphans(newOrphan: _children[to], noLongerOrphan: child));
+    _children[to] = child;
   }
 
   void removeCell(RenderBox child, _CellIndex slot) {
@@ -561,6 +648,7 @@ class _RenderRawTableViewport extends RenderBox {
     assert(_debugTrackOrphans(noLongerOrphan: child));
     dropChild(child);
   }
+
 
   List<RenderBox>? _debugOrphans;
 
@@ -581,8 +669,10 @@ class _RenderRawTableViewport extends RenderBox {
   }
 }
 
-// TODO: This probably will have to be a Listenable/ChangeNotifier.
-abstract class RawTableDelegate {
+// TODO: Do we need more fine-grained control instead of just a blanked notifyListeners that rebuilds everything?
+// Maybe `requestRebuild` for changes to buildCell/buildPrototype.
+//   `requestLayout` for size changes, `request paint` for visuals.
+abstract class RawTableDelegate extends ChangeNotifier {
   Widget buildCell(BuildContext context, int column, int row);
 
   int? get columnCount;
@@ -648,32 +738,24 @@ class MinTableDimensionSpec extends CombingingRawTableDimensionSpec {
 
 @immutable
 class _CellIndex implements Comparable<_CellIndex> {
-  const _CellIndex({required this.row, required this.column, this.offset});
+  const _CellIndex({required this.row, required this.column});
 
   final int row;
   final int column;
-  final Offset? offset;
 
   @override
   bool operator ==(Object other) {
     return other is _CellIndex
         && other.row == row
-        && other.column == column
-        && other.offset == offset;
+        && other.column == column;
   }
 
   @override
-  int get hashCode => hashValues(row, column, offset);
+  int get hashCode => hashValues(row, column);
 
   @override
   int compareTo(_CellIndex other) {
     if (row == other.row) {
-      if (column == other.column && offset != null) {
-        if (offset!.dy == other.offset!.dy) {
-          return offset!.dx.compareTo(other.offset!.dx);
-        }
-        return offset!.dy.compareTo(other.offset!.dy);
-      }
       return column - other.column;
     }
     return row - other.row;
@@ -681,11 +763,13 @@ class _CellIndex implements Comparable<_CellIndex> {
 
   @override
   String toString() {
-    return '${objectRuntimeType(this, '_CellIndex')}(c: $column, r: $row${offset == null ? '' : ', $offset'})';
+    return '(column: $column, row: $row)';
   }
 }
 
 abstract class _CellManager {
+  void startLayout();
   void buildCell(_CellIndex index);
-  void removeCell(_CellIndex index);
+  void reuseCell(_CellIndex index);
+  void endLayout();
 }

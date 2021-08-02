@@ -12,7 +12,7 @@ class TableExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      showPerformanceOverlay: true,
+      // showPerformanceOverlay: true,
       title: 'Table Example',
       scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false, dragDevices: PointerDeviceKind.values.toSet()), // TODO: How to deal with auto-scrollbars in nested scrolling?
       theme: ThemeData(
@@ -31,7 +31,7 @@ class TableExample extends StatefulWidget {
 }
 
 class _TableExampleState extends State<TableExample> {
-  final RawTableDelegate delegate = ExampleRawTableDelegate();
+  final ExampleRawTableDelegate delegate = ExampleRawTableDelegate();
 
   final ScrollController controller = ScrollController();
 
@@ -45,19 +45,39 @@ class _TableExampleState extends State<TableExample> {
         delegate: delegate,
         verticalController: controller,
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.adjust),
-        onPressed: () {
-          controller.jumpTo((controller.offset + 2000) % controller.position.maxScrollExtent);
-        },
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   child: const Icon(Icons.adjust),
+      //   onPressed: () {
+      //     controller.jumpTo((controller.offset + 2000) % controller.position.maxScrollExtent);
+      //   },
+      // ),
+      persistentFooterButtons: <Widget>[
+        TextButton(onPressed: delegate.switchKeyedChild, child: const Text('switch keyed child')),
+      ],
     );
   }
 }
 
 class ExampleRawTableDelegate extends RawTableDelegate {
+
+  int keyedChildRow = 0;
+  int keyedChildColumn = 0;
+
+  void switchKeyedChild() {
+    keyedChildRow = keyedChildRow == 0 ? 1 : 0;
+    keyedChildColumn = keyedChildColumn == 0 ? 1 : 0;
+    notifyListeners();
+  }
+
   @override
   Widget buildCell(BuildContext context, int column, int row) {
+    if (column == keyedChildColumn && row == keyedChildRow) {
+      return Container(
+        key: const ValueKey<String>('counter'),
+        color: Colors.pink,
+        child: CounterCell(column: column, row: row),
+      );
+    }
     return Container(
       color: row.isEven
           ? (column.isEven ? Colors.red : Colors.yellow)
@@ -105,4 +125,31 @@ class ExampleRawTableDelegate extends RawTableDelegate {
 
   @override
   bool shouldRebuild(RawTableDelegate oldDelegate) => true;
+}
+
+class CounterCell extends StatefulWidget {
+  const CounterCell({Key? key, required this.row, required this.column}) : super(key: key);
+
+  final int row;
+  final int column;
+
+  @override
+  State<CounterCell> createState() => _CounterCellState();
+}
+
+class _CounterCellState extends State<CounterCell> {
+  int count = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        setState(() {
+          count++;
+        });
+      },
+      child: Center(child: Text('Count (c: ${widget.column}, r: ${widget.row}): $count')),
+    );
+  }
 }
