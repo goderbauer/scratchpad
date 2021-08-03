@@ -12,7 +12,7 @@ class TableExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      showPerformanceOverlay: true,
+      // showPerformanceOverlay: true,
       title: 'Table Example',
       scrollBehavior: const MaterialScrollBehavior().copyWith(scrollbars: false, dragDevices: PointerDeviceKind.values.toSet()), // TODO: How to deal with auto-scrollbars in nested scrolling?
       theme: ThemeData(
@@ -44,6 +44,7 @@ class _TableExampleState extends State<TableExample> {
       body: RawTableScrollView(
         delegate: delegate,
         verticalController: controller,
+        border: RawTableBorder.all(color: Colors.deepPurple, width: 10),
       ),
       // floatingActionButton: FloatingActionButton(
       //   child: const Icon(Icons.adjust),
@@ -53,6 +54,7 @@ class _TableExampleState extends State<TableExample> {
       // ),
       persistentFooterButtons: <Widget>[
         TextButton(onPressed: delegate.switchKeyedChild, child: const Text('switch keyed child')),
+        TextButton(onPressed: () => controller.jumpTo((controller.offset + 2000) % controller.position.maxScrollExtent), child: const Text('jump')),
       ],
     );
   }
