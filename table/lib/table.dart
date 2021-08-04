@@ -4,6 +4,9 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:table/table_band.dart';
+
+import 'border.dart';
 
 class RawTableScrollView extends StatefulWidget {
   const RawTableScrollView({Key? key, this.horizontalController, this.verticalController, this.border, required this.delegate}) : super(key: key);
@@ -596,8 +599,8 @@ class _RenderRawTableViewport extends RenderBox {
     if (delegate.columnCount != null && column >= delegate.columnCount!) {
       return null;
     }
-    return delegate.buildColumnSpec(column)?.calculateDimension(
-      RawTableCellMetrics(viewportExtent: size.width),
+    return delegate.buildColumnSpec(column)?.extent.calculateExtent(
+      RawTableBandExtentDelegate(viewportExtent: size.width),
     );
   }
 
@@ -606,8 +609,8 @@ class _RenderRawTableViewport extends RenderBox {
     if (delegate.rowCount != null && row >= delegate.rowCount!) {
       return null;
     }
-    return delegate.buildRowSpec(row)?.calculateDimension(
-      RawTableCellMetrics(viewportExtent: size.height),
+    return delegate.buildRowSpec(row)?.extent.calculateExtent(
+      RawTableBandExtentDelegate(viewportExtent: size.width),
     );
   }
 
@@ -737,62 +740,10 @@ abstract class RawTableDelegate extends ChangeNotifier {
   int? get columnCount;
   int? get rowCount;
 
-  RawTableDimensionSpec? buildColumnSpec(int column);
-  RawTableDimensionSpec? buildRowSpec(int row);
+  RawTableBand? buildColumnSpec(int column);
+  RawTableBand? buildRowSpec(int row);
 
   bool shouldRebuild(RawTableDelegate oldDelegate);
-}
-
-// TODO: better name. RawTableSpecDelegate ?
-class RawTableCellMetrics {
-  RawTableCellMetrics({required this.viewportExtent});
-
-  final double viewportExtent;
-}
-
-abstract class RawTableDimensionSpec {
-  const RawTableDimensionSpec();
-
-  double calculateDimension(RawTableCellMetrics metrics);
-}
-
-class FixedRawTableDimensionSpec extends RawTableDimensionSpec {
-  const FixedRawTableDimensionSpec(this.pixels) : assert(pixels >= 0.0);
-
-  final double pixels;
-
-  @override
-  double calculateDimension(RawTableCellMetrics metrics) => pixels;
-}
-
-class ViewportFractionRawTableDimensionSpec extends RawTableDimensionSpec {
-  const ViewportFractionRawTableDimensionSpec(this.fraction) : assert(fraction >= 0.0);
-
-  final double fraction;
-
-  @override
-  double calculateDimension(RawTableCellMetrics metrics) => metrics.viewportExtent * fraction;
-}
-
-typedef RawTableSpecCombiner = double Function(double, double);
-
-class CombingingRawTableDimensionSpec extends RawTableDimensionSpec {
-  const CombingingRawTableDimensionSpec(this.spec1, this.spec2, this.combiner);
-
-  final RawTableDimensionSpec spec1;
-  final RawTableDimensionSpec spec2;
-  final RawTableSpecCombiner combiner;
-
-  @override
-  double calculateDimension(RawTableCellMetrics metrics) => combiner(spec1.calculateDimension(metrics), spec2.calculateDimension(metrics));
-}
-
-class MaxTableDimensionSpec extends CombingingRawTableDimensionSpec {
-  const MaxTableDimensionSpec(RawTableDimensionSpec spec1, RawTableDimensionSpec spec2) : super(spec1, spec2, math.max);
-}
-
-class MinTableDimensionSpec extends CombingingRawTableDimensionSpec {
-  const MinTableDimensionSpec(RawTableDimensionSpec spec1, RawTableDimensionSpec spec2) : super(spec1, spec2, math.min);
 }
 
 @immutable
@@ -831,201 +782,4 @@ abstract class _CellManager {
   void buildCell(_CellIndex index);
   void reuseCell(_CellIndex index);
   void endLayout();
-}
-
-
-// TODO: unify? with TableBorder.
-@immutable
-class RawTableBorder {
-  const RawTableBorder({
-    this.top = BorderSide.none,
-    this.right = BorderSide.none,
-    this.bottom = BorderSide.none,
-    this.left = BorderSide.none,
-    this.horizontalInside = BorderSide.none,
-    this.verticalInside = BorderSide.none,
-    this.borderRadius = BorderRadius.zero,
-  });
-
-  factory RawTableBorder.all({
-    Color color = const Color(0xFF000000),
-    double width = 1.0,
-    BorderStyle style = BorderStyle.solid,
-    BorderRadius borderRadius = BorderRadius.zero,
-  }) {
-    final BorderSide side = BorderSide(color: color, width: width, style: style);
-    return RawTableBorder(top: side, right: side, bottom: side, left: side, horizontalInside: side, verticalInside: side, borderRadius: borderRadius);
-  }
-
-  factory RawTableBorder.symmetric({
-    BorderSide inside = BorderSide.none,
-    BorderSide outside = BorderSide.none,
-  }) {
-    return RawTableBorder(
-      top: outside,
-      right: outside,
-      bottom: outside,
-      left: outside,
-      horizontalInside: inside,
-      verticalInside: inside,
-    );
-  }
-
-  final BorderSide top;
-  final BorderSide right;
-  final BorderSide bottom;
-  final BorderSide left;
-  final BorderSide horizontalInside;
-  final BorderSide verticalInside;
-  final BorderRadius borderRadius;
-
-  // TODO: What to do with "holes" caused by spans?
-  void paint(
-    Canvas canvas,
-    Rect visibleTableRect,
-    Iterable<double> innerRowOffsets,
-    Iterable<double> innerColumnOffsets,
-    Rect outerOffsets, // double.NaN represents that it's not rendered currently.
-  ) {
-    final Paint paint = Paint();
-    final Path path = Path();
-
-    if (innerColumnOffsets.isNotEmpty) {
-      switch (verticalInside.style) {
-        case BorderStyle.solid:
-          paint
-            ..color = verticalInside.color
-            ..strokeWidth = verticalInside.width
-            ..style = PaintingStyle.stroke;
-          path.reset();
-          for (final double x in innerColumnOffsets) {
-            path
-              ..moveTo(x, visibleTableRect.top)
-              ..lineTo(x, visibleTableRect.bottom);
-          }
-          canvas.drawPath(path, paint);
-          break;
-        case BorderStyle.none:
-          break;
-      }
-    }
-
-    if (innerRowOffsets.isNotEmpty) {
-      switch (horizontalInside.style) {
-        case BorderStyle.solid:
-          paint
-            ..color = horizontalInside.color
-            ..strokeWidth = horizontalInside.width
-            ..style = PaintingStyle.stroke;
-          path.reset();
-          for (final double y in innerRowOffsets) {
-            path
-              ..moveTo(visibleTableRect.left, y)
-              ..lineTo(visibleTableRect.right, y);
-          }
-          canvas.drawPath(path, paint);
-          break;
-        case BorderStyle.none:
-          break;
-      }
-    }
-
-    if (outerOffsets.top != double.nan) {
-      switch (top.style) {
-        case BorderStyle.solid:
-          paint
-            ..color = top.color
-            ..strokeWidth = top.width
-            ..style = PaintingStyle.stroke;
-          final double dy = outerOffsets.top + (top.width / 2);
-          path
-            ..reset()
-            ..moveTo(visibleTableRect.left, dy)
-            ..lineTo(visibleTableRect.right, dy);
-          canvas.drawPath(path, paint);
-          break;
-        case BorderStyle.none:
-          break;
-      }
-    }
-
-    if (outerOffsets.bottom != double.nan) {
-      switch (bottom.style) {
-        case BorderStyle.solid:
-          paint
-            ..color = bottom.color
-            ..strokeWidth = bottom.width
-            ..style = PaintingStyle.stroke;
-          final double dy = outerOffsets.bottom - (bottom.width / 2);
-          path
-            ..reset()
-            ..moveTo(visibleTableRect.left, dy)
-            ..lineTo(visibleTableRect.right, dy);
-          canvas.drawPath(path, paint);
-          break;
-        case BorderStyle.none:
-          break;
-      }
-    }
-
-    if (outerOffsets.left != double.nan) {
-      switch (left.style) {
-        case BorderStyle.solid:
-          paint
-            ..color = left.color
-            ..strokeWidth = left.width
-            ..style = PaintingStyle.stroke;
-          final double dx = outerOffsets.left + (left.width / 2);
-          path
-            ..reset()
-            ..moveTo(dx, visibleTableRect.top)
-            ..lineTo(dx, visibleTableRect.bottom);
-          canvas.drawPath(path, paint);
-          break;
-        case BorderStyle.none:
-          break;
-      }
-    }
-
-    if (outerOffsets.right != double.nan) {
-      switch (right.style) {
-        case BorderStyle.solid:
-          paint
-            ..color = right.color
-            ..strokeWidth = right.width
-            ..style = PaintingStyle.stroke;
-          final double dx = outerOffsets.right - (right.width / 2);
-          path
-            ..reset()
-            ..moveTo(dx, visibleTableRect.top)
-            ..lineTo(dx, visibleTableRect.bottom);
-          canvas.drawPath(path, paint);
-          break;
-        case BorderStyle.none:
-          break;
-      }
-    }
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other))
-      return true;
-    if (other.runtimeType != runtimeType)
-      return false;
-    return other is RawTableBorder
-        && other.top == top
-        && other.right == right
-        && other.bottom == bottom
-        && other.left == left
-        && other.horizontalInside == horizontalInside
-        && other.verticalInside == verticalInside
-        && other.borderRadius == borderRadius;
-  }
-
-  @override
-  int get hashCode => hashValues(top, right, bottom, left, horizontalInside, verticalInside, borderRadius);
-
-  @override
-  String toString() => 'RawTableBorder($top, $right, $bottom, $left, $horizontalInside, $verticalInside, $borderRadius)';
 }
