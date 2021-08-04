@@ -29,21 +29,16 @@ class _RawTableScrollViewState extends State<RawTableScrollView> {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Figure out scrollbar situation.
     // TODO: deal with panning
-    return Scrollbar(
+    return Scrollbar( // TODO: remove this when MaterialScrollBehavior auto-adds scrollbars on horizontal scrollers
       controller: horizontalController,
       isAlwaysShown: true,
-      child: Scrollbar(
-        controller: verticalController,
-        isAlwaysShown: true,
-        notificationPredicate: (ScrollNotification notification) => notification.depth == 1,
-        child: Scrollable(
-          controller: horizontalController,
-          axisDirection: AxisDirection.right, // TODO: make these configurable
-          viewportBuilder: (BuildContext context, ViewportOffset horizontalOffset) {
-            return FakeViewport( // This is only here to increase depth of ScrollNotification
-              child: Scrollable(
+      child:  Scrollable(
+        controller: horizontalController,
+        axisDirection: AxisDirection.right, // TODO: make these configurable
+        viewportBuilder: (BuildContext context, ViewportOffset horizontalOffset) {
+          return FakeViewport( // This is only here to increase depth of ScrollNotification
+            child: Scrollable(
                 controller: verticalController,
                 axisDirection: AxisDirection.down,
                 viewportBuilder: (BuildContext context, ViewportOffset verticalOffset) {
@@ -54,10 +49,9 @@ class _RawTableScrollViewState extends State<RawTableScrollView> {
                     border: widget.border,
                   );
                 },
-              ),
+            ),
             );
           },
-        ),
       ),
     );
   }
