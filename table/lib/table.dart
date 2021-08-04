@@ -4,8 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:table/table_band.dart';
 
+import 'band.dart';
 import 'border.dart';
 
 class RawTableScrollView extends StatefulWidget {
@@ -126,18 +126,18 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
   //   super.mount(parent, newSlot);
   // }
 
-  @override
-  void update(_RawTableViewport newWidget) {
-    // Rebuild if the delegate requires it. (Rebuild will delegate to layout).
-    final _RawTableViewport oldWidget = widget;
-    super.update(newWidget);
-    final RawTableDelegate newDelegate = newWidget.delegate;
-    final RawTableDelegate oldDelegate = oldWidget.delegate;
-    if (newDelegate != oldDelegate && (newDelegate.runtimeType != oldDelegate.runtimeType || newDelegate.shouldRebuild(oldDelegate))) {
-      rebuild(); // ultimately runs performRebuild()
-      // renderObject.markNeedsLayoutWithRebuild(); // rebuild(); // TODO: or performRebuild? or remove performRebuild impl alltogether and just mark renderobject?
-    }
-  }
+  // @override
+  // void update(_RawTableViewport newWidget) {
+  //   // Rebuild if the delegate requires it. (Rebuild will delegate to layout).
+  //   final _RawTableViewport oldWidget = widget;
+  //   super.update(newWidget);
+  //   final RawTableDelegate newDelegate = newWidget.delegate;
+  //   final RawTableDelegate oldDelegate = oldWidget.delegate;
+  //   if (newDelegate != oldDelegate && (newDelegate.runtimeType != oldDelegate.runtimeType || newDelegate.shouldRebuild(oldDelegate))) {
+  //     rebuild(); // ultimately runs performRebuild()
+  //     // renderObject.markNeedsLayoutWithRebuild(); // rebuild(); // TODO: or performRebuild? or remove performRebuild impl alltogether and just mark renderobject?
+  //   }
+  // }
 
   // TODO: check inheritedwidgets.
   @override
@@ -145,7 +145,7 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
     super.performRebuild();
     // Children list is updated during layout since we only know during layout
     // which children will be visible.
-    renderObject.markNeedsLayoutWithRebuild();
+    renderObject.markNeedsLayout(needsRebuild: true, needsSpecUpdate: true);
   }
 
   // @override
@@ -346,13 +346,16 @@ class _RenderRawTableViewport extends RenderBox {
       return;
     }
     if (attached) {
-      _delegate.removeListener(markNeedsLayoutWithRebuild);
+      _delegate.removeListener(_handleDelegateNotification);
     }
+    final RawTableDelegate oldDelegate = value;
     _delegate = value;
     if (attached) {
-      _delegate.addListener(markNeedsLayoutWithRebuild);
+      _delegate.addListener(_handleDelegateNotification);
     }
-    markNeedsLayout();
+    if (_delegate.runtimeType != oldDelegate.runtimeType || _delegate.shouldRebuild(oldDelegate)) {
+      _handleDelegateNotification();
+    }
   }
 
   RawTableBorder? get border => _border;
@@ -367,12 +370,14 @@ class _RenderRawTableViewport extends RenderBox {
 
   final _CellManager cellManager;
 
+  void _handleDelegateNotification() => markNeedsLayout(needsRebuild: true, needsSpecUpdate: true);
+
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
     _horizontalOffset.addListener(markNeedsLayout);
     _verticalOffset.addListener(markNeedsLayout);
-    _delegate.addListener(markNeedsLayoutWithRebuild);
+    _delegate.addListener(_handleDelegateNotification);
     for (final RenderBox child in _children.values) {
       child.attach(owner);
     }
@@ -382,7 +387,7 @@ class _RenderRawTableViewport extends RenderBox {
   void detach() {
     _horizontalOffset.removeListener(markNeedsLayout);
     _verticalOffset.removeListener(markNeedsLayout);
-    _delegate.removeListener(markNeedsLayoutWithRebuild);
+    _delegate.removeListener(_handleDelegateNotification);
     for (final RenderBox child in _children.values) {
       child.detach();
     }
@@ -444,6 +449,7 @@ class _RenderRawTableViewport extends RenderBox {
     return false;
   }
 
+  // TODO: HashMap + linked list in parentData
   final SplayTreeMap<_CellIndex, RenderBox> _children = SplayTreeMap<_CellIndex, RenderBox>();
 
   @override
@@ -454,91 +460,170 @@ class _RenderRawTableViewport extends RenderBox {
     verticalOffset.applyViewportDimension(size.height);
   }
 
+  // TableMetrics
+  final Map<int, _Band> _columnMetrics = <int, _Band>{};
+  final Map<int, _Band> _rowMetrics = <int, _Band>{};
+  _CellIndex? _firstVisibleCell;
+  _CellIndex? _lastVisibleCell;
+
+
+  void _updateMetrics() {
+    int? firstColumn;
+    int? lastColumn;
+    double startOfColumn = 0;
+    _columnMetrics.clear();
+    // TODO: consider columnCount == null
+    for (int column = 0; column < delegate.columnCount!; column++) {
+      final RawTableBand? bandSpec = delegate.buildColumnSpec(column);
+      if (bandSpec == null) {
+        // TODO
+        return;
+      }
+      final _Band band = _Band(
+        spec: bandSpec,
+        extent: bandSpec.extent.calculateExtent(RawTableBandExtentDelegate(
+          viewportExtent: size.width,
+          precedingExtent: startOfColumn,
+        )),
+        start: startOfColumn,
+      );
+      _columnMetrics[column] = band;
+      final double endOfColumn = startOfColumn + band.extent;
+      if (endOfColumn >= horizontalOffset.pixels && firstColumn == null) {
+        firstColumn = column;
+      }
+      if (endOfColumn >= horizontalOffset.pixels + size.width && lastColumn == null) {
+        lastColumn = column;
+      }
+
+      startOfColumn = endOfColumn;
+    }
+    if (firstColumn == null && _columnMetrics.isNotEmpty) {
+      // TODO: we are scrolled too far.
+    }
+    if (lastColumn == null) {
+      // TODO: its okay if rows can't fill whole viewport, if they could: correction
+      lastColumn = _columnMetrics.length - 1;
+    }
+
+    int? firstRow;
+    int? lastRow;
+    double startOfRow = 0;
+    _rowMetrics.clear();
+    // TODO: consider rowCount == null
+    for (int row = 0; row < delegate.rowCount!; row++) {
+      final RawTableBand? bandSpec = delegate.buildRowSpec(row);
+      if (bandSpec == null) {
+        // TODO
+        return;
+      }
+      final _Band band = _Band(
+        spec: bandSpec,
+        extent: bandSpec.extent.calculateExtent(RawTableBandExtentDelegate(
+          viewportExtent: size.width,
+          precedingExtent: startOfRow,
+        )),
+        start: startOfRow,
+      );
+      _rowMetrics[row] = band;
+      final double endOfRow = startOfRow + band.extent;
+      if (endOfRow >= verticalOffset.pixels && firstRow == null) {
+        firstRow = row;
+      }
+      if (endOfRow >= verticalOffset.pixels + size.width && lastRow == null) {
+        lastRow = row;
+      }
+
+      startOfRow = endOfRow;
+    }
+    if (firstRow == null && _rowMetrics.isNotEmpty) {
+      // TODO: we are scrolled too far.
+    }
+    if (lastRow == null) {
+      // TODO: its okay if rows can't fill whole viewport, if they could: correction
+      lastRow = _rowMetrics.length - 1;
+    }
+    assert(firstRow != null);
+    assert(lastRow != null);
+    assert(firstColumn != null);
+    assert(lastColumn != null);
+    _firstVisibleCell = _CellIndex(row: firstRow!, column: firstColumn!);
+    _lastVisibleCell = _CellIndex(row: lastRow, column: lastColumn);
+
+    // ---- update content dimensions ----
+    final _Band lastAvailableRow = _rowMetrics[_rowMetrics.length - 1]!;
+    final double endOfLastAvailableRow = lastAvailableRow.start + lastAvailableRow.extent;
+    final _Band lastAvailableColumn = _columnMetrics[_columnMetrics.length - 1]!;
+    final double endOfLastAvailableColumn = lastAvailableColumn.start + lastAvailableColumn.extent;
+    // TODO: Do something with return values
+    horizontalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableColumn - size.width));
+    verticalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableRow - size.height));
+  }
+
   @override
   void performLayout() {
-    // TODO: figure out in what cases we can skip recalculating this.
-    // ---- Calculate the first visible column. ----
-    int column = 0;
-    double startOfColumn = 0.0;
-    // If this is null there is no column with index `column`.
-    double? columnWidth = _getColumnWidth(column);
-    while (columnWidth != null && startOfColumn + columnWidth < horizontalOffset.pixels) {
-      startOfColumn += columnWidth;
-      column += 1;
-      columnWidth = _getColumnWidth(column);
-    }
-    final double offsetIntoColumn = horizontalOffset.pixels - startOfColumn;
-    final int firstColumn = column;
-    // double? columnCorrection = columnWidth == null ? offsetIntoColumn : null;
-
-    // ---- Calculate the first visible row. ----
-    int row = 0;
-    double startOfRow = 0.0;
-    // If this is null there is no row with index `row`.
-    double? rowHeight = _getRowHeight(row);
-    while (rowHeight != null && startOfRow + rowHeight < verticalOffset.pixels) {
-      startOfRow += rowHeight;
-      row += 1;
-      rowHeight = _getRowHeight(row);
-    }
-    final double offsetIntoRow = verticalOffset.pixels - startOfRow;
-    final int firstRow = row;
-    // double? rowCorrection = rowHeight == null ? offsetIntoRow : 0.0;
-    //
-    // if (rowCorrection != null || columnCorrection != null) {
-    //   // TODO: This is missing viewport dimension & implement correction
-    //   throw UnimplementedError('1 Scroll correction not implemented');
-    // }
-
-    // ---- Calculate last visible column ---
-    double endOfColumn = startOfColumn;
-    if (columnWidth != null) {
-      final double lastVisibleColumnPixels = horizontalOffset.pixels + size.width;
-      endOfColumn = startOfColumn + columnWidth;
-      while (endOfColumn < lastVisibleColumnPixels) {
-        columnWidth = _getColumnWidth(column + 1);
-        if (columnWidth == null) {
+    if (_needsSpecUpdate) {
+      _updateMetrics();
+    } else {
+      int? firstColumn;
+      int? lastColumn;
+      final double lastVisibleColumnPixel = horizontalOffset.pixels + size.width;
+      for (int column = 0; column < _columnMetrics.length; column++) {
+        final double endOfColumn = _columnMetrics[column]!.end;
+        if (endOfColumn >= horizontalOffset.pixels && firstColumn == null) {
+          firstColumn = column;
+        }
+        if (endOfColumn >= lastVisibleColumnPixel && lastColumn == null) {
+          lastColumn = column;
           break;
         }
-        column += 1;
-        startOfColumn = endOfColumn;
-        endOfColumn += columnWidth;
       }
-    }
-    final int lastColumn = column;
-    // columnCorrection = columnWidth == null ? lastVisibleColumnPixels - startOfColumn: null;
+      if (firstColumn == null && _columnMetrics.isNotEmpty) {
+        // TODO: we are scrolled too far.
+      }
+      if (lastColumn == null) {
+        // TODO: its okay if rows can't fill whole viewport, if they could: correction
+        lastColumn = _columnMetrics.length - 1;
+      }
 
-    // ---- Calculate last visible row ---
-    double endOfRow = startOfRow;
-    if (rowHeight != null) {
-      final double lastVisibleRowPixels = verticalOffset.pixels + size.height;
-      endOfRow = startOfRow + rowHeight;
-      while (endOfRow < lastVisibleRowPixels) {
-        rowHeight = _getRowHeight(row + 1);
-        if (rowHeight == null) {
+      int? firstRow;
+      int? lastRow;
+      final double lastVisibleRowPixel = verticalOffset.pixels + size.height;
+      for (int row = 0; row < _rowMetrics.length; row++) {
+        final double endOfRow = _rowMetrics[row]!.end;
+        if (endOfRow >= verticalOffset.pixels && firstRow == null) {
+          firstRow = row;
+        }
+        if (endOfRow >= lastVisibleRowPixel && lastRow == null) {
+          lastRow = row;
           break;
         }
-        row += 1;
-        startOfRow = endOfRow;
-        endOfRow += rowHeight;
       }
+      if (firstRow == null && _rowMetrics.isNotEmpty) {
+        // TODO: we are scrolled too far.
+      }
+      if (lastRow == null) {
+        // TODO: its okay if rows can't fill whole viewport, if they could: correction
+        lastRow = _rowMetrics.length - 1;
+      }
+
+      _firstVisibleCell = _CellIndex(row: firstRow!, column: firstColumn!);
+      _lastVisibleCell = _CellIndex(row: lastRow, column: lastColumn);
     }
-    final int lastRow = row;
-    // rowCorrection = rowHeight == null ? lastVisibleRowPixels - startOfRow: null;
-    //
-    // if (rowCorrection != null || columnCorrection != null) {
-    //   // TODO: implement correction
-    //   throw UnimplementedError('2 Scroll correction not implemented');
-    // }
+
+    final _CellIndex firstCell = _firstVisibleCell!;
+    final _CellIndex lastCell = _lastVisibleCell!;
+    final double offsetIntoColumn = horizontalOffset.pixels - _columnMetrics[firstCell.column]!.start;
+    final double offsetIntoRow = verticalOffset.pixels - _rowMetrics[firstCell.row]!.start;
 
     // ---- layout columns, rows ----
     cellManager.startLayout();
     double yPaintOffset = -offsetIntoRow;
-    for (int row = firstRow; row <= lastRow; row += 1) {
+    for (int row = firstCell.row; row <= lastCell.row; row += 1) {
       double xPaintOffset = -offsetIntoColumn;
-      final double rowHeight = _getRowHeight(row)!;
-      for (int column = firstColumn; column <= lastColumn; column += 1) {
-        final double columnWidth = _getColumnWidth(column)!;
+      final double rowHeight = _rowMetrics[row]!.extent;
+      for (int column = firstCell.column; column <= lastCell.column; column += 1) {
+        final double columnWidth = _columnMetrics[column]!.extent;
         final _CellIndex index = _CellIndex(row: row, column: column);
         if (_needsRebuild || !_children.containsKey(index)) {
           invokeLayoutCallback<BoxConstraints>((BoxConstraints _) {
@@ -567,51 +652,7 @@ class _RenderRawTableViewport extends RenderBox {
       cellManager.endLayout();
     });
     _needsRebuild = false;
-    _debugOrphans?.forEach(print);
     assert(_debugOrphans?.isEmpty ?? true);
-
-    // TODO: figure out in what cases we can skip recalculating this.
-    // ---- calculate content dimensions ----
-    if (delegate.columnCount != null) {
-      double scrollExtent = endOfColumn;
-      column += 1;
-      while (column < delegate.columnCount!) {
-        scrollExtent += _getColumnWidth(column)!;
-        column += 1;
-      }
-      // TODO: Do something with return value?
-      horizontalOffset.applyContentDimensions(0.0, math.max(0.0, scrollExtent - size.width));
-    }
-    if (delegate.rowCount != null) {
-      double scrollExtent = endOfRow;
-      row += 1;
-      while (row < delegate.rowCount!) {
-        scrollExtent += _getRowHeight(row)!;
-        row += 1;
-      }
-      // TODO: Do something with return value?
-      verticalOffset.applyContentDimensions(0.0, math.max(0.0, scrollExtent - size.height));
-    }
-  }
-
-  double? _getColumnWidth(int column) {
-    // TODO: caching & error handling.
-    if (delegate.columnCount != null && column >= delegate.columnCount!) {
-      return null;
-    }
-    return delegate.buildColumnSpec(column)?.extent.calculateExtent(
-      RawTableBandExtentDelegate(viewportExtent: size.width),
-    );
-  }
-
-  double? _getRowHeight(int row) {
-    // TODO: caching & error handling.
-    if (delegate.rowCount != null && row >= delegate.rowCount!) {
-      return null;
-    }
-    return delegate.buildRowSpec(row)?.extent.calculateExtent(
-      RawTableBandExtentDelegate(viewportExtent: size.width),
-    );
   }
 
   final LayerHandle<ClipRectLayer> _clipRectLayer = LayerHandle<ClipRectLayer>();
@@ -632,46 +673,49 @@ class _RenderRawTableViewport extends RenderBox {
     );
   }
 
+  Offset _paintOffsetOf(RenderBox child) {
+    final BoxParentData childParentData = child.parentData! as BoxParentData;
+    return childParentData.offset;
+  }
+
+  Offset _paintEndOffsetOf(RenderBox child) {
+    final BoxParentData childParentData = child.parentData! as BoxParentData;
+    return Offset(childParentData.offset.dx + child.size.width, childParentData.offset.dy + child.size.height);
+  }
+
   void _paintContents(PaintingContext context, Offset offset) {
-    final Set<double> _rowOffsets = <double>{};
-    final Set<double> _columnOffsets = <double>{};
-
-
-    for (final RenderBox child in _children.values) {
-      final BoxParentData childParentData = child.parentData! as BoxParentData;
-      context.paintChild(child, offset + childParentData.offset);
-    }
-    if (border != null) {
-      // TODO: table could be smaller then size
-      // final Iterable<double> rows = _rowTops.getRange(1, _rowTops.length - 1);
-      // final Iterable<double> columns = _columnLefts!.skip(1);
-
-      double? firstColumn;
-      double? firstRow;
-      double? lastColumn;
-      double? lastRow;
-      for (final _CellIndex index in _children.keys) {
-        final BoxParentData childParentData = _children[index]!.parentData! as BoxParentData;
-        if (index.column != 0) {
-          _columnOffsets.add(offset.dx + childParentData.offset.dx);
-          if (index.column == (delegate.columnCount! - 1)) {
-            lastColumn = offset.dx + childParentData.offset.dx + _children[index]!.size.width;
-          }
-        } else {
-          firstColumn = offset.dx + childParentData.offset.dx;
-        }
-        if (index.row != 0) {
-          _rowOffsets.add(offset.dy + childParentData.offset.dy);
-          if (index.row == (delegate.rowCount! - 1)) {
-            lastRow = offset.dy + childParentData.offset.dy + _children[index]!.size.height;
-          }
-        } else {
-          firstRow = offset.dy + childParentData.offset.dy;
-        }
+    final List<double> _rowOffsets = <double>[];
+    final List<double> _columnOffsets = <double>[];
+    int lastColumn = -1;
+    int lastRow = - 1;
+    for (final _CellIndex index in _children.keys) {
+      final RenderBox child = _children[index]!;
+      final Offset childOffset = _paintOffsetOf(child);
+      context.paintChild(child, offset + childOffset);
+      if (index.column > lastColumn && index.column != 0) {
+        _columnOffsets.add(childOffset.dx);
+        lastColumn = index.column;
       }
-      final Rect visibleTableRect = Rect.fromLTWH(firstColumn ?? 0, firstRow ?? 0, size.width - (firstColumn ?? 0), size.height - (firstRow ?? 0));
-      border!.paint(context.canvas, visibleTableRect, _rowOffsets, _columnOffsets, Rect.fromLTRB(firstColumn ?? double.nan, firstRow ?? double.nan, lastColumn ?? double.nan, lastRow ?? double.nan));
-      // border!.paint(context.canvas, size, _rowToStartOffset, _columnToStartOffset);
+      if (index.row > lastRow && index.row != 0) {
+        _rowOffsets.add(childOffset.dy);
+        lastRow = index.row;
+      }
+    }
+
+    if (border != null && _children.isNotEmpty) {
+      final Offset firstVisibleOffset = _paintOffsetOf(_children[_firstVisibleCell]!) + offset;
+      final Offset lastVisibleOffset = _paintEndOffsetOf(_children[_lastVisibleCell]!) + offset;
+      final Rect drawnRect = Rect.fromPoints(firstVisibleOffset, lastVisibleOffset);
+      final Rect visibleRect = (offset & size).intersect(drawnRect);
+
+      final Rect outerOffsets = Rect.fromLTRB(
+        _firstVisibleCell!.column == 0 ? drawnRect.left : double.nan,
+        _firstVisibleCell!.row == 0 ? drawnRect.top : double.nan,
+        _lastVisibleCell!.column == _columnMetrics.length - 1 ? drawnRect.right : double.nan,
+        _lastVisibleCell!.row == _rowMetrics.length - 1 ? drawnRect.bottom : double.nan,
+      );
+
+      border!.paint(context.canvas, visibleRect, _rowOffsets, _columnOffsets, outerOffsets);
     }
   }
 
@@ -681,13 +725,17 @@ class _RenderRawTableViewport extends RenderBox {
     super.dispose();
   }
 
-  // ---- called from Element ----
-
   bool _needsRebuild = true;
-  void markNeedsLayoutWithRebuild() {
-    _needsRebuild = true;
-    markNeedsLayout();
+  bool _needsSpecUpdate = true;
+
+  @override
+  void markNeedsLayout({bool needsRebuild = false, bool needsSpecUpdate = false}) {
+    _needsRebuild = _needsRebuild || needsRebuild;
+    _needsSpecUpdate = _needsSpecUpdate || needsSpecUpdate;
+    super.markNeedsLayout();
   }
+
+  // ---- called from Element ----
 
   void insertCell(RenderBox child, _CellIndex slot) {
     assert(_debugTrackOrphans(newOrphan: _children[slot]));
@@ -782,4 +830,14 @@ abstract class _CellManager {
   void buildCell(_CellIndex index);
   void reuseCell(_CellIndex index);
   void endLayout();
+}
+
+class _Band {
+  const _Band({required this.start, required this.extent, required this.spec});
+
+  final double start;
+  final double extent;
+  final RawTableBand spec;
+
+  double get end => start + extent;
 }

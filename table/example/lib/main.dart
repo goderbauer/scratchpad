@@ -1,6 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:table/band.dart';
+import 'package:table/border.dart';
 import 'package:table/table.dart';
+
 
 void main() {
   runApp(const TableExampleApp());
@@ -89,32 +92,32 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   }
 
   @override
-  RawTableDimensionSpec? buildColumnSpec(int column) {
+  RawTableBand? buildColumnSpec(int column) {
     switch (column % 5) {
       case 0:
-        return const FixedRawTableDimensionSpec(100);
+        return const RawTableBand(extent: FixedRawTableBandExtent(100));
       case 1:
-        return const ViewportFractionRawTableDimensionSpec(0.5);
+        return const RawTableBand(extent: FractionalRawTableBandExtent(0.5));
       case 2:
-        return const FixedRawTableDimensionSpec(120);
+        return const RawTableBand(extent: FixedRawTableBandExtent(120));
       case 3:
-        return const FixedRawTableDimensionSpec(145);
+        return const RawTableBand(extent: FixedRawTableBandExtent(145));
       case 4:
-        return const FixedRawTableDimensionSpec(200);
+        return const RawTableBand(extent: FixedRawTableBandExtent(200));
     }
     return null;
   }
 
   @override
-  RawTableDimensionSpec? buildRowSpec(int row) {
+  RawTableBand? buildRowSpec(int row) {
     // return const FixedRawTableDimensionSpec(35);
     switch (row % 3) {
       case 0:
-        return const FixedRawTableDimensionSpec(35);
+        return const RawTableBand(extent: FixedRawTableBandExtent(35));
       case 1:
-        return const FixedRawTableDimensionSpec(50);
+        return const RawTableBand(extent: FixedRawTableBandExtent(50));
       case 2:
-        return const ViewportFractionRawTableDimensionSpec(0.15);
+        return const RawTableBand(extent: FractionalRawTableBandExtent(0.15));
     }
     return null;
   }
@@ -123,7 +126,7 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   int? get columnCount => 8;
 
   @override
-  int? get rowCount => 1000;
+  int? get rowCount => 20;
 
   @override
   bool shouldRebuild(RawTableDelegate oldDelegate) => true;
