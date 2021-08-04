@@ -533,7 +533,7 @@ class _RenderRawTableViewport extends RenderBox {
       if (endOfRow >= verticalOffset.pixels && firstRow == null) {
         firstRow = row;
       }
-      if (endOfRow >= verticalOffset.pixels + size.width && lastRow == null) {
+      if (endOfRow >= verticalOffset.pixels + size.height && lastRow == null) {
         lastRow = row;
       }
 
@@ -561,6 +561,8 @@ class _RenderRawTableViewport extends RenderBox {
     // TODO: Do something with return values
     horizontalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableColumn - size.width));
     verticalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableRow - size.height));
+
+    _needsSpecUpdate = false;
   }
 
   @override
