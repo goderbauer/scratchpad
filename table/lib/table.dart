@@ -7,6 +7,7 @@ import 'package:flutter/rendering.dart';
 
 import 'band.dart';
 import 'border.dart';
+import 'fake_viewport.dart';
 
 class RawTableScrollView extends StatefulWidget {
   const RawTableScrollView({Key? key, this.horizontalController, this.verticalController, this.border, required this.delegate}) : super(key: key);
@@ -41,17 +42,19 @@ class _RawTableScrollViewState extends State<RawTableScrollView> {
           controller: horizontalController,
           axisDirection: AxisDirection.right, // TODO: make these configurable
           viewportBuilder: (BuildContext context, ViewportOffset horizontalOffset) {
-            return Scrollable(
-              controller: verticalController,
-              axisDirection: AxisDirection.down,
-              viewportBuilder: (BuildContext context, ViewportOffset verticalOffset) {
-                return _RawTableViewport(
-                  horizontalOffset: horizontalOffset,
-                  verticalOffset: verticalOffset,
-                  delegate: widget.delegate,
-                  border: widget.border,
-                );
-              },
+            return FakeViewport( // This is only here to increase depth of ScrollNotification
+              child: Scrollable(
+                controller: verticalController,
+                axisDirection: AxisDirection.down,
+                viewportBuilder: (BuildContext context, ViewportOffset verticalOffset) {
+                  return _RawTableViewport(
+                    horizontalOffset: horizontalOffset,
+                    verticalOffset: verticalOffset,
+                    delegate: widget.delegate,
+                    border: widget.border,
+                  );
+                },
+              ),
             );
           },
         ),
