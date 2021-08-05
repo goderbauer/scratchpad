@@ -141,7 +141,7 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
     super.performRebuild();
     // Children list is updated during layout since we only know during layout
     // which children will be visible.
-    renderObject.markNeedsLayout(needsRebuild: true, needsSpecUpdate: true);
+    renderObject.markNeedsLayout(withCellRebuild: true, withSpecRebuild: true);
   }
 
   // @override
@@ -366,7 +366,7 @@ class _RenderRawTableViewport extends RenderBox {
 
   final _CellManager cellManager;
 
-  void _handleDelegateNotification() => markNeedsLayout(needsRebuild: true, needsSpecUpdate: true);
+  void _handleDelegateNotification() => markNeedsLayout(withCellRebuild: true, withSpecRebuild: true);
 
   @override
   void setupParentData(RenderBox child) {
@@ -456,27 +456,32 @@ class _RenderRawTableViewport extends RenderBox {
 
   @override
   void performResize() {
+    final Size? oldSize = hasSize ? size : null;
     super.performResize();
     // Ignoring return value since we are doing a layout either way (performLayout will be invoked next).
     horizontalOffset.applyViewportDimension(size.width);
     verticalOffset.applyViewportDimension(size.height);
+    if (oldSize != size) {
+      // Specs can depend on viewport size.
+      _needsSpecExtentUpdate = true;
+    }
   }
 
-  // TableMetrics
-  final Map<int, _Band> _columnMetrics = <int, _Band>{};
-  final Map<int, _Band> _rowMetrics = <int, _Band>{};
+  // Table metrics
+  Map<int, _Band> _columnMetrics = <int, _Band>{};
+  Map<int, _Band> _rowMetrics = <int, _Band>{};
   _CellIndex? _firstVisibleCell;
   _CellIndex? _lastVisibleCell;
 
-
   void _updateMetrics() {
+    assert(_needsSpecRebuild || _needsSpecExtentUpdate);
     int? firstColumn;
     int? lastColumn;
     double startOfColumn = 0;
-    _columnMetrics.clear();
+    final Map<int, _Band> _newColumnMetrics = <int, _Band>{};
     // TODO: consider columnCount == null
     for (int column = 0; column < delegate.columnCount!; column++) {
-      final RawTableBand? bandSpec = delegate.buildColumnSpec(column);
+      final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildColumnSpec(column) : _columnMetrics[column]!.spec;
       if (bandSpec == null) {
         // TODO
         return;
@@ -489,7 +494,7 @@ class _RenderRawTableViewport extends RenderBox {
         )),
         start: startOfColumn,
       );
-      _columnMetrics[column] = band;
+      _newColumnMetrics[column] = band;
       final double endOfColumn = startOfColumn + band.extent;
       if (endOfColumn >= horizontalOffset.pixels && firstColumn == null) {
         firstColumn = column;
@@ -500,6 +505,7 @@ class _RenderRawTableViewport extends RenderBox {
 
       startOfColumn = endOfColumn;
     }
+    _columnMetrics = _newColumnMetrics;
     if (firstColumn == null && _columnMetrics.isNotEmpty) {
       // TODO: we are scrolled too far.
     }
@@ -511,10 +517,10 @@ class _RenderRawTableViewport extends RenderBox {
     int? firstRow;
     int? lastRow;
     double startOfRow = 0;
-    _rowMetrics.clear();
+    final Map<int, _Band> _newRowMetrics = <int, _Band>{};
     // TODO: consider rowCount == null
     for (int row = 0; row < delegate.rowCount!; row++) {
-      final RawTableBand? bandSpec = delegate.buildRowSpec(row);
+      final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildRowSpec(row) : _rowMetrics[row]!.spec;
       if (bandSpec == null) {
         // TODO
         return;
@@ -522,12 +528,12 @@ class _RenderRawTableViewport extends RenderBox {
       final _Band band = _Band(
         spec: bandSpec,
         extent: bandSpec.extent.calculateExtent(RawTableBandExtentDelegate(
-          viewportExtent: size.width,
+          viewportExtent: size.height,
           precedingExtent: startOfRow,
         )),
         start: startOfRow,
       );
-      _rowMetrics[row] = band;
+      _newRowMetrics[row] = band;
       final double endOfRow = startOfRow + band.extent;
       if (endOfRow >= verticalOffset.pixels && firstRow == null) {
         firstRow = row;
@@ -538,6 +544,7 @@ class _RenderRawTableViewport extends RenderBox {
 
       startOfRow = endOfRow;
     }
+    _rowMetrics = _newRowMetrics;
     if (firstRow == null && _rowMetrics.isNotEmpty) {
       // TODO: we are scrolled too far.
     }
@@ -561,12 +568,13 @@ class _RenderRawTableViewport extends RenderBox {
     horizontalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableColumn - size.width));
     verticalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableRow - size.height));
 
-    _needsSpecUpdate = false;
+    _needsSpecRebuild = false;
+    _needsSpecExtentUpdate = false;
   }
 
   @override
   void performLayout() {
-    if (_needsSpecUpdate) {
+    if (_needsSpecRebuild || _needsSpecExtentUpdate) {
       _updateMetrics();
     } else {
       int? firstColumn;
@@ -630,7 +638,7 @@ class _RenderRawTableViewport extends RenderBox {
       for (int column = firstCell.column; column <= lastCell.column; column += 1) {
         final double columnWidth = _columnMetrics[column]!.extent;
         final _CellIndex index = _CellIndex(row: row, column: column);
-        if (_needsRebuild || !_children.containsKey(index)) {
+        if (_needsCellRebuild || !_children.containsKey(index)) {
           invokeLayoutCallback<BoxConstraints>((BoxConstraints _) {
             cellManager.buildCell(index);
           });
@@ -664,7 +672,7 @@ class _RenderRawTableViewport extends RenderBox {
     invokeLayoutCallback<BoxConstraints>((BoxConstraints _) {
       cellManager.endLayout();
     });
-    _needsRebuild = false;
+    _needsCellRebuild = false;
     assert(_debugOrphans?.isEmpty ?? true);
     // TODO: assert that all children are linked
   }
@@ -757,13 +765,15 @@ class _RenderRawTableViewport extends RenderBox {
     super.dispose();
   }
 
-  bool _needsRebuild = true;
-  bool _needsSpecUpdate = true;
+  bool _needsCellRebuild = true;
+  bool _needsSpecRebuild = true;
+  bool _needsSpecExtentUpdate = false;
 
   @override
-  void markNeedsLayout({bool needsRebuild = false, bool needsSpecUpdate = false}) {
-    _needsRebuild = _needsRebuild || needsRebuild;
-    _needsSpecUpdate = _needsSpecUpdate || needsSpecUpdate;
+  void markNeedsLayout({bool withCellRebuild = false, bool withSpecRebuild = false}) {
+    _needsCellRebuild = _needsCellRebuild || withCellRebuild;
+    _needsSpecRebuild = _needsSpecRebuild || withSpecRebuild;
+    // TODO: set _needsDimensionUpdate if we depend on size of children.
     super.markNeedsLayout();
   }
 
