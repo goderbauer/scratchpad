@@ -692,13 +692,20 @@ class _RenderRawTableViewport extends RenderBox {
       final Offset childOffset = _paintOffsetOf(child);
       context.paintChild(child, offset + childOffset);
       if (index.column > lastColumn && index.column != 0) {
-        _columnOffsets.add(childOffset.dx);
+        _columnOffsets.add(childOffset.dx + offset.dx);
         lastColumn = index.column;
       }
       if (index.row > lastRow && index.row != 0) {
-        _rowOffsets.add(childOffset.dy);
+        _rowOffsets.add(childOffset.dy + offset.dy);
         lastRow = index.row;
       }
+    }
+    final Offset lastChild = _paintEndOffsetOf(_children[_lastVisibleCell]!);
+    if (_lastVisibleCell!.row != _rowMetrics.length - 1) {
+      _rowOffsets.add(lastChild.dy + offset.dy);
+    }
+    if (_lastVisibleCell!.column != _columnMetrics.length - 1) {
+      _columnOffsets.add(lastChild.dx + offset.dx);
     }
 
     if (border != null && _children.isNotEmpty) {
