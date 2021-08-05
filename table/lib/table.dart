@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -370,6 +369,13 @@ class _RenderRawTableViewport extends RenderBox {
   void _handleDelegateNotification() => markNeedsLayout(needsRebuild: true, needsSpecUpdate: true);
 
   @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _RawTableViewportParentData) {
+      child.parentData = _RawTableViewportParentData();
+    }
+  }
+
+  @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
     _horizontalOffset.addListener(markNeedsLayout);
@@ -446,8 +452,7 @@ class _RenderRawTableViewport extends RenderBox {
     return false;
   }
 
-  // TODO: HashMap + linked list in parentData
-  final SplayTreeMap<_CellIndex, RenderBox> _children = SplayTreeMap<_CellIndex, RenderBox>();
+  final Map<_CellIndex, RenderBox> _children = <_CellIndex, RenderBox>{};
 
   @override
   void performResize() {
@@ -618,6 +623,7 @@ class _RenderRawTableViewport extends RenderBox {
     // ---- layout columns, rows ----
     cellManager.startLayout();
     double yPaintOffset = -offsetIntoRow;
+    RenderBox? previousCell;
     for (int row = firstCell.row; row <= lastCell.row; row += 1) {
       double xPaintOffset = -offsetIntoColumn;
       final double rowHeight = _rowMetrics[row]!.extent;
@@ -640,9 +646,17 @@ class _RenderRawTableViewport extends RenderBox {
         );
         cell.layout(cellConstraints);
 
-        final BoxParentData cellParentData = cell.parentData! as BoxParentData;
-        cellParentData.offset = Offset(xPaintOffset, yPaintOffset);
+        _parentDataOf(cell)
+          ..offset = Offset(xPaintOffset, yPaintOffset)
+          ..previousSibling = previousCell
+          ..nextSibling = null
+          ..index = index;
+        if (previousCell != null) {
+          _parentDataOf(previousCell).nextSibling = cell;
+        }
+
         xPaintOffset += columnWidth;
+        previousCell = cell;
       }
       yPaintOffset += rowHeight;
     }
@@ -652,6 +666,7 @@ class _RenderRawTableViewport extends RenderBox {
     });
     _needsRebuild = false;
     assert(_debugOrphans?.isEmpty ?? true);
+    // TODO: assert that all children are linked
   }
 
   final LayerHandle<ClipRectLayer> _clipRectLayer = LayerHandle<ClipRectLayer>();
@@ -672,13 +687,24 @@ class _RenderRawTableViewport extends RenderBox {
     );
   }
 
+  _RawTableViewportParentData _parentDataOf(RenderBox child) {
+    return child.parentData! as _RawTableViewportParentData;
+  }
+
+  RenderBox? _cellAfter(RenderBox child) {
+    return _parentDataOf(child).nextSibling;
+  }
+
+  RenderBox? _cellBefore(RenderBox child) {
+    return _parentDataOf(child).previousSibling;
+  }
+
   Offset _paintOffsetOf(RenderBox child) {
-    final BoxParentData childParentData = child.parentData! as BoxParentData;
-    return childParentData.offset;
+    return _parentDataOf(child).offset;
   }
 
   Offset _paintEndOffsetOf(RenderBox child) {
-    final BoxParentData childParentData = child.parentData! as BoxParentData;
+    final BoxParentData childParentData = _parentDataOf(child);
     return Offset(childParentData.offset.dx + child.size.width, childParentData.offset.dy + child.size.height);
   }
 
@@ -687,17 +713,17 @@ class _RenderRawTableViewport extends RenderBox {
     final List<double> _columnOffsets = <double>[];
     int lastColumn = -1;
     int lastRow = - 1;
-    for (final _CellIndex index in _children.keys) {
-      final RenderBox child = _children[index]!;
-      final Offset childOffset = _paintOffsetOf(child);
-      context.paintChild(child, offset + childOffset);
-      if (index.column > lastColumn && index.column != 0) {
-        _columnOffsets.add(childOffset.dx + offset.dx);
-        lastColumn = index.column;
+
+    for (RenderBox? cell = _children[_firstVisibleCell]; cell != null; cell = _cellAfter(cell)) {
+      final _RawTableViewportParentData parentData = _parentDataOf(cell);
+      context.paintChild(cell, offset + parentData.offset);
+      if (parentData.index.column > lastColumn && parentData.index.column != 0) {
+        _columnOffsets.add(parentData.offset.dx + offset.dx);
+        lastColumn = parentData.index.column;
       }
-      if (index.row > lastRow && index.row != 0) {
-        _rowOffsets.add(childOffset.dy + offset.dy);
-        lastRow = index.row;
+      if (parentData.index.row > lastRow && parentData.index.row != 0) {
+        _rowOffsets.add(parentData.offset.dy + offset.dy);
+        lastRow = parentData.index.row;
       }
     }
     final Offset lastChild = _paintEndOffsetOf(_children[_lastVisibleCell]!);
@@ -804,6 +830,8 @@ abstract class RawTableDelegate extends ChangeNotifier {
 class _CellIndex implements Comparable<_CellIndex> {
   const _CellIndex({required this.row, required this.column});
 
+  static const _CellIndex invalid = _CellIndex(row: -1, column: -1);
+
   final int row;
   final int column;
 
@@ -846,4 +874,10 @@ class _Band {
   final RawTableBand spec;
 
   double get end => start + extent;
+}
+
+class _RawTableViewportParentData extends BoxParentData {
+  RenderBox? nextSibling;
+  RenderBox? previousSibling;
+  _CellIndex index = _CellIndex.invalid;
 }
