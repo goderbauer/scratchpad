@@ -655,6 +655,7 @@ class _RenderRawTableViewport extends RenderBox {
     if (_needsSpecRebuild || _needsSpecExtentUpdate) {
       _updateMetrics();
     } else {
+      // TODO: unify this with _updateMetrics.
       int? firstColumn;
       int? lastColumn;
       final double lastVisibleColumnPixel = horizontalOffset.pixels + size.width;
@@ -782,9 +783,9 @@ class _RenderRawTableViewport extends RenderBox {
     return _parentDataOf(child).nextSibling;
   }
 
-  RenderBox? _cellBefore(RenderBox child) {
-    return _parentDataOf(child).previousSibling;
-  }
+  // RenderBox? _cellBefore(RenderBox child) {
+  //   return _parentDataOf(child).previousSibling;
+  // }
 
   Offset _paintOffsetOf(RenderBox child) {
     return _parentDataOf(child).offset;
