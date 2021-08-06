@@ -1,8 +1,11 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart' show Scrollbar;
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
 import 'band.dart';
 import 'border.dart';
@@ -434,6 +437,22 @@ class _RenderRawTableViewport extends RenderBox {
   }
 
   @override
+  bool hitTest(BoxHitTestResult result, { required Offset position }) {
+    if (size.contains(position)) {
+      bool isHit = hitTestChildren(result, position: position);
+      // TODO: Maybe make the row/column hit test order configurable?
+      isHit = _hitTestRows(result, position: position) || isHit;
+      isHit = _hitTestColumns(result, position: position) || isHit;
+      assert(hitTestSelf(position) == false); // no need to call this.
+      if (isHit) {
+        result.add(BoxHitTestEntry(this, position));
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
     for (final RenderBox child in _children.values) {
       final BoxParentData parentData = child.parentData! as BoxParentData;
@@ -443,10 +462,57 @@ class _RenderRawTableViewport extends RenderBox {
         hitTest: (BoxHitTestResult result, Offset transformed) {
           assert(transformed == position - parentData.offset);
           return child.hitTest(result, position: transformed);
+          // TODO: add cell
         },
       );
       if (isHit) {
         return true;
+      }
+    }
+    return false;
+  }
+
+  bool _hitTestRows(BoxHitTestResult result, {required Offset position}) {
+    final double left = math.max(0.0, _columnMetrics[_firstVisibleCell!.column]!.start - _horizontalOffset.pixels);
+    final double right = _columnMetrics[_lastVisibleCell!.column]!.end - _horizontalOffset.pixels;
+    for (int row = _firstVisibleCell!.row; row <= _lastVisibleCell!.row; row++) {
+      final _Band band = _rowMetrics[row]!;
+      final double top = math.max(0.0, band.start - _verticalOffset.pixels);
+      final double bottom = band.end - _verticalOffset.pixels;
+      final Rect rowRect = Rect.fromLTRB(left, top, right, bottom);
+      if (rowRect.contains(position)) {
+        return result.addWithPaintOffset(
+          offset: rowRect.topLeft,
+          position: position,
+          hitTest: (BoxHitTestResult result, Offset transformed) {
+            assert(position - rowRect.topLeft == transformed);
+            result.add(HitTestEntry(band));
+            return true;
+          },
+        );
+      }
+    }
+    return false;
+  }
+
+  bool _hitTestColumns(BoxHitTestResult result, {required Offset position}) {
+    final double top = math.max(0.0, _rowMetrics[_firstVisibleCell!.row]!.start - _verticalOffset.pixels);
+    final double bottom = _rowMetrics[_lastVisibleCell!.row]!.end - _verticalOffset.pixels;
+    for (int column = _firstVisibleCell!.column; column <= _lastVisibleCell!.column; column++) {
+      final _Band band = _columnMetrics[column]!;
+      final double left = math.max(0.0, band.start - _horizontalOffset.pixels);
+      final double right = band.end - _horizontalOffset.pixels;
+      final Rect columnRect = Rect.fromLTRB(left, top, right, bottom);
+      if (columnRect.contains(position)) {
+        return result.addWithPaintOffset(
+          offset: columnRect.topLeft,
+          position: position,
+          hitTest: (BoxHitTestResult result, Offset transformed) {
+            assert(position - columnRect.topLeft == transformed);
+            result.add(HitTestEntry(band));
+            return true;
+          },
+        );
       }
     }
     return false;
@@ -478,23 +544,26 @@ class _RenderRawTableViewport extends RenderBox {
     int? firstColumn;
     int? lastColumn;
     double startOfColumn = 0;
-    final Map<int, _Band> _newColumnMetrics = <int, _Band>{};
+    final Map<int, _Band> newColumnMetrics = <int, _Band>{};
     // TODO: consider columnCount == null
     for (int column = 0; column < delegate.columnCount!; column++) {
-      final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildColumnSpec(column) : _columnMetrics[column]!.spec;
+      _Band? band = _columnMetrics.remove(column);
+      assert(_needsSpecRebuild || band != null);
+      final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildColumnSpec(column) : band!.spec;
       if (bandSpec == null) {
         // TODO
         return;
       }
-      final _Band band = _Band(
+      band ??= _Band();
+      band.update(
         spec: bandSpec,
+        start: startOfColumn,
         extent: bandSpec.extent.calculateExtent(RawTableBandExtentDelegate(
           viewportExtent: size.width,
           precedingExtent: startOfColumn,
         )),
-        start: startOfColumn,
       );
-      _newColumnMetrics[column] = band;
+      newColumnMetrics[column] = band;
       final double endOfColumn = startOfColumn + band.extent;
       if (endOfColumn >= horizontalOffset.pixels && firstColumn == null) {
         firstColumn = column;
@@ -505,7 +574,10 @@ class _RenderRawTableViewport extends RenderBox {
 
       startOfColumn = endOfColumn;
     }
-    _columnMetrics = _newColumnMetrics;
+    for (final _Band band in _columnMetrics.values) {
+      band.dispose();
+    }
+    _columnMetrics = newColumnMetrics;
     if (firstColumn == null && _columnMetrics.isNotEmpty) {
       // TODO: we are scrolled too far.
     }
@@ -517,23 +589,26 @@ class _RenderRawTableViewport extends RenderBox {
     int? firstRow;
     int? lastRow;
     double startOfRow = 0;
-    final Map<int, _Band> _newRowMetrics = <int, _Band>{};
+    final Map<int, _Band> newRowMetrics = <int, _Band>{};
     // TODO: consider rowCount == null
     for (int row = 0; row < delegate.rowCount!; row++) {
-      final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildRowSpec(row) : _rowMetrics[row]!.spec;
+      _Band? band = _rowMetrics.remove(row);
+      assert(_needsSpecRebuild || band != null);
+      final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildRowSpec(row) : band!.spec;
       if (bandSpec == null) {
         // TODO
         return;
       }
-      final _Band band = _Band(
+      band ??= _Band();
+      band.update(
         spec: bandSpec,
+        start: startOfRow,
         extent: bandSpec.extent.calculateExtent(RawTableBandExtentDelegate(
           viewportExtent: size.height,
           precedingExtent: startOfRow,
         )),
-        start: startOfRow,
       );
-      _newRowMetrics[row] = band;
+      newRowMetrics[row] = band;
       final double endOfRow = startOfRow + band.extent;
       if (endOfRow >= verticalOffset.pixels && firstRow == null) {
         firstRow = row;
@@ -544,7 +619,10 @@ class _RenderRawTableViewport extends RenderBox {
 
       startOfRow = endOfRow;
     }
-    _rowMetrics = _newRowMetrics;
+    for (final _Band band in _rowMetrics.values) {
+      band.dispose();
+    }
+    _rowMetrics = newRowMetrics;
     if (firstRow == null && _rowMetrics.isNotEmpty) {
       // TODO: we are scrolled too far.
     }
@@ -634,7 +712,8 @@ class _RenderRawTableViewport extends RenderBox {
     RenderBox? previousCell;
     for (int row = firstCell.row; row <= lastCell.row; row += 1) {
       double xPaintOffset = -offsetIntoColumn;
-      final double rowHeight = _rowMetrics[row]!.extent;
+      final _Band rowMetric = _rowMetrics[row]!;
+      final double rowHeight = rowMetric.extent;
       for (int column = firstCell.column; column <= lastCell.column; column += 1) {
         final double columnWidth = _columnMetrics[column]!.extent;
         final _CellIndex index = _CellIndex(row: row, column: column);
@@ -876,14 +955,94 @@ abstract class _CellManager {
   void endLayout();
 }
 
-class _Band {
-  const _Band({required this.start, required this.extent, required this.spec});
+class _Band with Diagnosticable implements HitTestTarget, MouseTrackerAnnotation  {
+  double get start => _start;
+  late double _start;
 
-  final double start;
-  final double extent;
-  final RawTableBand spec;
+  double get extent => _extent;
+  late double _extent;
+
+  RawTableBand get spec => _spec!;
+  RawTableBand? _spec;
 
   double get end => start + extent;
+
+  // ---- Band Management ----
+
+  void update({required RawTableBand spec, required double start, required double extent}) {
+    _start = start;
+    _extent = extent;
+    if (spec == _spec) {
+      return;
+    }
+    _spec = spec;
+    // Only sync recognizers if they are in use already.
+    if (_recognizers != null) {
+      _syncRecognizers();
+    }
+  }
+
+  void dispose() {
+    _disposeRecognizers();
+  }
+
+  // ---- Recognizers management ----
+
+  Map<Type, GestureRecognizer>? _recognizers;
+
+  void _syncRecognizers() {
+    if (spec.recognizerFactories.isEmpty) {
+      _disposeRecognizers();
+      return;
+    }
+    final Map<Type, GestureRecognizer> newRecognizers = <Type, GestureRecognizer>{};
+    for (final Type type in spec.recognizerFactories.keys) {
+      assert(!newRecognizers.containsKey(type));
+      newRecognizers[type] = _recognizers?.remove(type) ?? spec.recognizerFactories[type]!.constructor();
+      assert(newRecognizers[type].runtimeType == type, 'GestureRecognizerFactory of type $type created a GestureRecognizer of type ${newRecognizers[type].runtimeType}. The GestureRecognizerFactory must be specialized with the type of the class that it returns from its constructor method.');
+      spec.recognizerFactories[type]!.initializer(newRecognizers[type]!);
+    }
+    _disposeRecognizers(); // only disposes the ones that where not re-used above.
+    _recognizers = newRecognizers;
+  }
+
+  void _disposeRecognizers() {
+    if (_recognizers != null) {
+      for (final GestureRecognizer recognizer in _recognizers!.values) {
+        recognizer.dispose();
+      }
+      _recognizers = null;
+    }
+  }
+
+  // ---- HitTestTarget ----
+
+  @override
+  void handleEvent(PointerEvent event, HitTestEntry entry) {
+    if (event is PointerDownEvent && spec.recognizerFactories.isNotEmpty) {
+      if (_recognizers == null) {
+        _syncRecognizers();
+      }
+      assert(_recognizers != null);
+      for (final GestureRecognizer recognizer in _recognizers!.values) {
+        recognizer.addPointer(event);
+      }
+    }
+  }
+
+  // ---- MouseTrackerAnnotation ----
+
+  @override
+  MouseCursor get cursor => spec.cursor;
+
+  @override
+  PointerEnterEventListener? get onEnter => spec.onEnter;
+
+  @override
+  PointerExitEventListener? get onExit => spec.onExit;
+
+  @override
+  bool get validForMouseTracker => true;
 }
 
 class _RawTableViewportParentData extends BoxParentData {

@@ -1,10 +1,27 @@
 import 'dart:math' as math;
 
-class RawTableBand {
-  const RawTableBand({required this.extent});
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
+class RawTableBand {
+  const RawTableBand({
+    required this.extent,
+    this.recognizerFactories = const <Type, GestureRecognizerFactory>{},
+    this.onEnter,
+    this.onExit,
+    this.cursor = MouseCursor.defer,
+  });
+
+  // ---- Sizing ----
   final RawTableBandExtent extent;
-  // TODO: border, background
+
+  // ---- Gestures & Mouse ----
+  final Map<Type, GestureRecognizerFactory> recognizerFactories;
+  final PointerEnterEventListener? onEnter;
+  final PointerExitEventListener? onExit;
+  final MouseCursor cursor;
+
+  // TODO: border, background (= decoration).
 }
 
 class RawTableBandExtentDelegate {

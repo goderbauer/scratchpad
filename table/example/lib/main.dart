@@ -4,7 +4,6 @@ import 'package:table/band.dart';
 import 'package:table/border.dart';
 import 'package:table/table.dart';
 
-
 void main() {
   runApp(const TableExampleApp());
 }
@@ -48,22 +47,23 @@ class _TableExampleState extends State<TableExample> {
         verticalController: controller,
         border: RawTableBorder.all(color: Colors.deepPurple, width: 10),
       ),
-      // floatingActionButton: FloatingActionButton(
-      //   child: const Icon(Icons.adjust),
-      //   onPressed: () {
-      //     controller.jumpTo((controller.offset + 2000) % controller.position.maxScrollExtent);
-      //   },
-      // ),
       persistentFooterButtons: <Widget>[
-        TextButton(onPressed: delegate.switchKeyedChild, child: const Text('switch keyed child')),
-        TextButton(onPressed: () => controller.jumpTo((controller.offset + 2000) % controller.position.maxScrollExtent), child: const Text('jump')),
+        TextButton(
+          onPressed: delegate.switchKeyedChild,
+          child: const Text('switch keyed child'),
+        ),
+        TextButton(
+          onPressed: () {
+            controller.jumpTo((controller.offset + 2000) % controller.position.maxScrollExtent);
+          },
+          child: const Text('jump'),
+        ),
       ],
     );
   }
 }
 
 class ExampleRawTableDelegate extends RawTableDelegate {
-
   int keyedChildRow = 0;
   int keyedChildColumn = 0;
 
@@ -92,31 +92,91 @@ class ExampleRawTableDelegate extends RawTableDelegate {
 
   @override
   RawTableBand? buildColumnSpec(int column) {
+    void onEnter(PointerEnterEvent _) {
+      print('> column $column');
+    }
+    void onExit(PointerExitEvent _) {
+      print('< column $column');
+    }
+
     switch (column % 5) {
       case 0:
-        return const RawTableBand(extent: FixedRawTableBandExtent(100));
+        return RawTableBand(
+          extent: const FixedRawTableBandExtent(100),
+          onEnter: onEnter,
+          onExit: onExit,
+          recognizerFactories: <Type, GestureRecognizerFactory>{
+            TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+              () => TapGestureRecognizer(),
+              (TapGestureRecognizer t) => t.onTap = () => print('T column $column'),
+            ),
+          },
+        );
       case 1:
-        return const RawTableBand(extent: FractionalRawTableBandExtent(0.5));
+        return RawTableBand(
+          extent: const FractionalRawTableBandExtent(0.5),
+          onEnter: onEnter,
+          onExit: onExit,
+          cursor: SystemMouseCursors.contextMenu,
+        );
       case 2:
-        return const RawTableBand(extent: FixedRawTableBandExtent(120));
+        return RawTableBand(
+          extent: const FixedRawTableBandExtent(120),
+          onEnter: onEnter,
+          onExit: onExit,
+        );
       case 3:
-        return const RawTableBand(extent: FixedRawTableBandExtent(145));
+        return RawTableBand(
+          extent: const FixedRawTableBandExtent(145),
+          onEnter: onEnter,
+          onExit: onExit,
+        );
       case 4:
-        return const RawTableBand(extent: FixedRawTableBandExtent(200));
+        return RawTableBand(
+          extent: const FixedRawTableBandExtent(200),
+          onEnter: onEnter,
+          onExit: onExit,
+        );
     }
     return null;
   }
 
   @override
   RawTableBand? buildRowSpec(int row) {
+    void onEnter(PointerEnterEvent _) {
+      print('> row $row');
+    }
+    void onExit(PointerExitEvent _) {
+      print('< row $row');
+    }
+
     // return const FixedRawTableDimensionSpec(35);
     switch (row % 3) {
       case 0:
-        return const RawTableBand(extent: FixedRawTableBandExtent(35));
+        return RawTableBand(
+          extent: const FixedRawTableBandExtent(35),
+          onEnter: onEnter,
+          onExit: onExit,
+          recognizerFactories: <Type, GestureRecognizerFactory>{
+            TapGestureRecognizer: GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+              () => TapGestureRecognizer(),
+              (TapGestureRecognizer t) => t.onTap = () => print('T row $row'),
+            ),
+          },
+        );
       case 1:
-        return const RawTableBand(extent: FixedRawTableBandExtent(50));
+        return RawTableBand(
+          extent: const FixedRawTableBandExtent(50),
+          onEnter: onEnter,
+          onExit: onExit,
+          cursor: SystemMouseCursors.click,
+        );
       case 2:
-        return const RawTableBand(extent: FractionalRawTableBandExtent(0.15));
+        return RawTableBand(
+          extent: const FractionalRawTableBandExtent(0.15),
+          onEnter: onEnter,
+          onExit: onExit,
+        );
     }
     return null;
   }
@@ -132,7 +192,11 @@ class ExampleRawTableDelegate extends RawTableDelegate {
 }
 
 class CounterCell extends StatefulWidget {
-  const CounterCell({Key? key, required this.row, required this.column}) : super(key: key);
+  const CounterCell({
+    Key? key,
+    required this.row,
+    required this.column,
+  }) : super(key: key);
 
   final int row;
   final int column;
@@ -153,7 +217,9 @@ class _CounterCellState extends State<CounterCell> {
           count++;
         });
       },
-      child: Center(child: Text('Count (c: ${widget.column}, r: ${widget.row}): $count')),
+      child: Center(
+        child: Text('Count (c: ${widget.column}, r: ${widget.row}): $count'),
+      ),
     );
   }
 }
