@@ -772,51 +772,79 @@ class _RenderRawTableViewport extends RenderBox {
     return _parentDataOf(child).nextSibling;
   }
 
+  final LayerHandle<ClipRectLayer> _clipStickyRowsHandle = LayerHandle<ClipRectLayer>();
+  final LayerHandle<ClipRectLayer> _clipStickyColumnsHandle = LayerHandle<ClipRectLayer>();
+  final LayerHandle<ClipRectLayer> _clipCellsHandle = LayerHandle<ClipRectLayer>();
+
   void _paintContents(PaintingContext context, Offset offset) {
     final double left = _lastStickyColumn != null ? 0.0 : math.max(0.0, _parentDataOf(_children[_firstVisibleCell]!).offset.dx) + offset.dx;
     final double right = math.min(size.width, _parentDataOf(_children[_lastVisibleCell]!).offset.dx + _children[_lastVisibleCell]!.size.width) + offset.dx;
     final double top = _lastStickyColumn != null ? 0.0 : math.max(0.0, _parentDataOf(_children[_firstVisibleCell]!).offset.dy) + offset.dy;
     final double bottom = math.min(size.height, _parentDataOf(_children[_lastVisibleCell]!).offset.dy + _children[_lastVisibleCell]!.size.height) + offset.dy;
 
-    _paintColumnDecoration(
-      start: _firstVisibleCell!.column,
-      end: _lastVisibleCell!.column,
-      horizontalOffset: _horizontalOffset.pixels - _coveredByStickyColumns + offset.dx,
-      top: top,
-      bottom: bottom,
-      canvas: context.canvas,
+    _clipCellsHandle.layer = context.pushClipRect(
+      needsCompositing,
+      offset,
+      Rect.fromLTWH(_coveredByStickyColumns, _coveredByStickyRows, size.width - _coveredByStickyColumns, size.height - _coveredByStickyRows),
+      (PaintingContext context, Offset offset) {
+        _paintColumnDecoration(
+          start: _firstVisibleCell!.column,
+          end: _lastVisibleCell!.column,
+          horizontalOffset: _horizontalOffset.pixels - _coveredByStickyColumns + offset.dx,
+          top: top,
+          bottom: bottom,
+          canvas: context.canvas,
+        );
+        _paintRowDecoration(
+          start: _firstVisibleCell!.row,
+          end: _lastVisibleCell!.row,
+          verticalOffset: _verticalOffset.pixels - _coveredByStickyRows + offset.dy,
+          left: left,
+          right: right,
+          canvas: context.canvas,
+        );
+        _paintCells(context: context, offset: offset, start: _firstVisibleCell!);
+      },
+      oldLayer: _clipCellsHandle.layer,
     );
-    _paintRowDecoration(
-      start: _firstVisibleCell!.row,
-      end: _lastVisibleCell!.row,
-      verticalOffset: _verticalOffset.pixels - _coveredByStickyRows + offset.dy,
-      left: left,
-      right: right,
-      canvas: context.canvas,
-    );
-    _paintCells(context: context, offset: offset, start: _firstVisibleCell!);
 
     if (_lastStickyColumn != null) {
-      _paintColumnDecoration(
-        start: 0,
-        end: _lastStickyColumn!,
-        horizontalOffset: offset.dx,
-        top: top,
-        bottom: bottom,
-        canvas: context.canvas,
+      _clipStickyColumnsHandle.layer = context.pushClipRect(
+        needsCompositing,
+        offset,
+        Rect.fromLTWH(0.0, _coveredByStickyRows, _coveredByStickyColumns, size.height - _coveredByStickyRows),
+        (PaintingContext context, Offset offset) {
+          _paintColumnDecoration(
+            start: 0,
+            end: _lastStickyColumn!,
+            horizontalOffset: offset.dx,
+            top: top,
+            bottom: bottom,
+            canvas: context.canvas,
+          );
+          _paintCells(context: context, offset: offset, start: _CellIndex(row: _firstVisibleCell!.row, column: 0));
+        },
+        oldLayer: _clipStickyColumnsHandle.layer,
       );
-      _paintCells(context: context, offset: offset, start: _CellIndex(row: _firstVisibleCell!.row, column: 0));
     }
     if (_lastStickyRow != null) {
-      _paintRowDecoration(
-        start: 0,
-        end: _lastStickyRow!,
-        verticalOffset: offset.dy,
-        left: left,
-        right: right,
-        canvas: context.canvas,
+      _clipStickyRowsHandle.layer = context.pushClipRect(
+        needsCompositing,
+        offset,
+        Rect.fromLTWH(_coveredByStickyColumns, 0.0, size.width - _coveredByStickyColumns, _coveredByStickyRows),
+        (PaintingContext context, Offset offset) {
+          _paintRowDecoration(
+            start: 0,
+            end: _lastStickyRow!,
+            verticalOffset: offset.dy,
+            left: left,
+            right: right,
+            canvas: context.canvas,
+          );
+          _paintCells(context: context, offset: offset, start: _CellIndex(row: 0, column: _firstVisibleCell!.column));
+        },
+        oldLayer: _clipStickyRowsHandle.layer,
       );
-      _paintCells(context: context, offset: offset, start:_CellIndex(row: 0, column: _firstVisibleCell!.column));
     }
     if (_lastStickyRow != null && _lastStickyColumn != null) {
       _paintCells(context: context, offset: offset, start: const _CellIndex(row: 0, column: 0));
@@ -842,7 +870,6 @@ class _RenderRawTableViewport extends RenderBox {
         final double left =  band.start - horizontalOffset;
         final double right = left + band.extent;
         final Rect rect = Rect.fromLTRB(left, top, right, bottom);
-        // print('$horizontalOffset left: $left, right: $right');
         band.spec.decoration!.paint(canvas, rect, Axis.vertical);
       }
     }
@@ -858,6 +885,9 @@ class _RenderRawTableViewport extends RenderBox {
   @override
   void dispose() {
     _clipRectLayer.layer = null;
+    _clipStickyRowsHandle.layer = null;
+    _clipStickyColumnsHandle.layer = null;
+    _clipCellsHandle.layer = null;
     super.dispose();
   }
 
