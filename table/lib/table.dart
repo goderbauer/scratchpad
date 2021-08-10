@@ -777,33 +777,17 @@ class _RenderRawTableViewport extends RenderBox {
   final LayerHandle<ClipRectLayer> _clipCellsHandle = LayerHandle<ClipRectLayer>();
 
   void _paintContents(PaintingContext context, Offset offset) {
-    final double left = _lastStickyColumn != null ? 0.0 : math.max(0.0, _parentDataOf(_children[_firstVisibleCell]!).offset.dx) + offset.dx;
-    final double right = math.min(size.width, _parentDataOf(_children[_lastVisibleCell]!).offset.dx + _children[_lastVisibleCell]!.size.width) + offset.dx;
-    final double top = _lastStickyColumn != null ? 0.0 : math.max(0.0, _parentDataOf(_children[_firstVisibleCell]!).offset.dy) + offset.dy;
-    final double bottom = math.min(size.height, _parentDataOf(_children[_lastVisibleCell]!).offset.dy + _children[_lastVisibleCell]!.size.height) + offset.dy;
-
     _clipCellsHandle.layer = context.pushClipRect(
       needsCompositing,
       offset,
       Rect.fromLTWH(_coveredByStickyColumns, _coveredByStickyRows, size.width - _coveredByStickyColumns, size.height - _coveredByStickyRows),
       (PaintingContext context, Offset offset) {
-        _paintColumnDecoration(
-          start: _firstVisibleCell!.column,
-          end: _lastVisibleCell!.column,
-          horizontalOffset: _horizontalOffset.pixels - _coveredByStickyColumns + offset.dx,
-          top: top,
-          bottom: bottom,
-          canvas: context.canvas,
+        _paintCells(
+          context: context,
+          offset: offset,
+          start: _firstVisibleCell!,
+          end: _lastVisibleCell!,
         );
-        _paintRowDecoration(
-          start: _firstVisibleCell!.row,
-          end: _lastVisibleCell!.row,
-          verticalOffset: _verticalOffset.pixels - _coveredByStickyRows + offset.dy,
-          left: left,
-          right: right,
-          canvas: context.canvas,
-        );
-        _paintCells(context: context, offset: offset, start: _firstVisibleCell!);
       },
       oldLayer: _clipCellsHandle.layer,
     );
@@ -814,18 +798,17 @@ class _RenderRawTableViewport extends RenderBox {
         offset,
         Rect.fromLTWH(0.0, _coveredByStickyRows, _coveredByStickyColumns, size.height - _coveredByStickyRows),
         (PaintingContext context, Offset offset) {
-          _paintColumnDecoration(
-            start: 0,
-            end: _lastStickyColumn!,
-            horizontalOffset: offset.dx,
-            top: top,
-            bottom: bottom,
-            canvas: context.canvas,
+          _paintCells(
+            context: context,
+            offset: offset,
+            start: _CellIndex(row: _firstVisibleCell!.row, column: 0),
+            end: _CellIndex(row: _lastVisibleCell!.row, column: _lastStickyColumn!),
           );
-          _paintCells(context: context, offset: offset, start: _CellIndex(row: _firstVisibleCell!.row, column: 0));
         },
         oldLayer: _clipStickyColumnsHandle.layer,
       );
+    } else {
+      _clipStickyColumnsHandle.layer = null;
     }
     if (_lastStickyRow != null) {
       _clipStickyRowsHandle.layer = context.pushClipRect(
@@ -833,49 +816,71 @@ class _RenderRawTableViewport extends RenderBox {
         offset,
         Rect.fromLTWH(_coveredByStickyColumns, 0.0, size.width - _coveredByStickyColumns, _coveredByStickyRows),
         (PaintingContext context, Offset offset) {
-          _paintRowDecoration(
-            start: 0,
-            end: _lastStickyRow!,
-            verticalOffset: offset.dy,
-            left: left,
-            right: right,
-            canvas: context.canvas,
+          _paintCells(
+            context: context,
+            offset: offset,
+            start: _CellIndex(row: 0, column: _firstVisibleCell!.column),
+            end: _CellIndex(row: _lastStickyRow!, column: _lastVisibleCell!.column),
           );
-          _paintCells(context: context, offset: offset, start: _CellIndex(row: 0, column: _firstVisibleCell!.column));
         },
         oldLayer: _clipStickyRowsHandle.layer,
       );
+    } else {
+      _clipStickyRowsHandle.layer = null;
     }
     if (_lastStickyRow != null && _lastStickyColumn != null) {
-      _paintCells(context: context, offset: offset, start: const _CellIndex(row: 0, column: 0));
+      _paintCells(
+        context: context,
+        offset: offset,
+        start: const _CellIndex(row: 0, column: 0),
+        end: _CellIndex(row: _lastStickyRow!, column: _lastStickyColumn!),
+      );
     }
   }
+  //
+  // void _paintRowDecoration({required int start, required int end, required double verticalOffset, required double left, required double right, required Canvas canvas}) {
+  //   for (int row = start; row <= end; row++) {
+  //     final _Band band = _rowMetrics[row]!;
+  //     if (band.spec.decoration != null) {
+  //       final double top =  band.start - verticalOffset;
+  //       final double bottom = top + band.extent;
+  //       final Rect rect = Rect.fromLTRB(left, top, right, bottom);
+  //       band.spec.decoration!.paint(canvas, rect, Axis.horizontal);
+  //     }
+  //   }
+  // }
+  //
+  // void _paintColumnDecoration({required int start, required int end, required double horizontalOffset, required double top, required double bottom, required Canvas canvas}) {
+  //   for (int column = start; column <= end; column++) {
+  //     final _Band band = _columnMetrics[column]!;
+  //     if (band.spec.decoration != null) {
+  //       final double left =  band.start - horizontalOffset;
+  //       final double right = left + band.extent;
+  //       final Rect rect = Rect.fromLTRB(left, top, right, bottom);
+  //       band.spec.decoration!.paint(canvas, rect, Axis.vertical);
+  //     }
+  //   }
+  // }
 
-  void _paintRowDecoration({required int start, required int end, required double verticalOffset, required double left, required double right, required Canvas canvas}) {
-    for (int row = start; row <= end; row++) {
-      final _Band band = _rowMetrics[row]!;
-      if (band.spec.decoration != null) {
-        final double top =  band.start - verticalOffset;
-        final double bottom = top + band.extent;
-        final Rect rect = Rect.fromLTRB(left, top, right, bottom);
-        band.spec.decoration!.paint(canvas, rect, Axis.horizontal);
-      }
-    }
-  }
-
-  void _paintColumnDecoration({required int start, required int end, required double horizontalOffset, required double top, required double bottom, required Canvas canvas}) {
-    for (int column = start; column <= end; column++) {
+  void _paintCells({required PaintingContext context, required _CellIndex start, required _CellIndex end, required Offset offset}) {
+    for (int column = start.column; column <= end.column; column++) {
       final _Band band = _columnMetrics[column]!;
       if (band.spec.decoration != null) {
-        final double left =  band.start - horizontalOffset;
-        final double right = left + band.extent;
-        final Rect rect = Rect.fromLTRB(left, top, right, bottom);
-        band.spec.decoration!.paint(canvas, rect, Axis.vertical);
+        final _RawTableViewportParentData startParentData = _parentDataOf(_children[_CellIndex(row: start.row, column: column)]!);
+        final RenderBox endChild = _children[_CellIndex(row: end.row, column: column)]!;
+        final Rect rect = Rect.fromPoints(startParentData.offset + offset, _parentDataOf(endChild).offset + Offset(endChild.size.width, endChild.size.height) + offset);
+        band.spec.decoration!.paint(context.canvas, rect, Axis.vertical);
       }
     }
-  }
-
-  void _paintCells({required PaintingContext context, required _CellIndex start, required Offset offset}) {
+    for (int row = start.row; row <= end.row; row++) {
+      final _Band band = _rowMetrics[row]!;
+      if (band.spec.decoration != null) {
+        final _RawTableViewportParentData startParentData = _parentDataOf(_children[_CellIndex(row: row, column: start.column)]!);
+        final RenderBox endChild = _children[_CellIndex(row: row, column: end.column)]!;
+        final Rect rect = Rect.fromPoints(startParentData.offset + offset, _parentDataOf(endChild).offset + Offset(endChild.size.width, endChild.size.height) + offset);
+        band.spec.decoration!.paint(context.canvas, rect, Axis.horizontal);
+      }
+    }
     for (RenderBox? cell = _children[start]; cell != null; cell = _cellAfter(cell)) {
       final _RawTableViewportParentData parentData = _parentDataOf(cell);
       context.paintChild(cell, offset + parentData.offset);
