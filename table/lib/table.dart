@@ -423,154 +423,24 @@ class _RenderRawTableViewport extends RenderBox {
   }
 
   @override
-  bool hitTest(BoxHitTestResult result, { required Offset position }) {
-    if (size.contains(position)) {
-      bool isHit = hitTestChildren(result, position: position);
-      // TODO: Maybe make the row/column hit test order configurable?
-      isHit = _hitTestRows(result, position: position) || isHit;
-      isHit = _hitTestColumns(result, position: position) || isHit;
-      assert(hitTestSelf(position) == false); // no need to call this.
-      if (isHit) {
-        result.add(BoxHitTestEntry(this, position));
-        return true;
-      }
-    }
-    return false;
-  }
-
-  @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
     for (final RenderBox child in _children.values) {
-      final BoxParentData parentData = child.parentData! as BoxParentData;
-      final bool isHit = result.addWithPaintOffset(
-        offset: parentData.offset,
-        position: position,
-        hitTest: (BoxHitTestResult result, Offset transformed) {
-          assert(transformed == position - parentData.offset);
-          return child.hitTest(result, position: transformed);
-          // TODO: add cell
-        },
-      );
-      if (isHit) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  bool _hitTestRows(BoxHitTestResult result, {required Offset position}) {
-    final double left = _lastStickyColumn == null
-        ? _columnMetrics[_firstVisibleCell!.column]!.start - _horizontalOffset.pixels
-        : 0.0;
-    final double right = _columnMetrics[_lastVisibleCell!.column]!.end - _horizontalOffset.pixels + _coveredByStickyColumns;
-    if (_lastStickyRow != null) {
-      final bool isHit = _hitTestRow(
-        startRow: 0,
-        endRow: _lastStickyRow!,
-        result: result,
-        position: position,
-        left: left,
-        right: right,
-        offset: 0.0,
-      );
-      if (isHit) {
-        return true;
-      }
-    }
-    return _hitTestRow(
-      startRow: _firstVisibleCell!.row,
-      endRow: _lastVisibleCell!.row,
-      result: result,
-      position: position,
-      left: left,
-      right: right,
-      offset: _verticalOffset.pixels - _coveredByStickyRows,
-    );
-  }
-
-  bool _hitTestRow({
-    required int startRow,
-    required int endRow,
-    required BoxHitTestResult result,
-    required Offset position,
-    required double left,
-    required double right,
-    required double offset,
-  }) {
-    for (int row = startRow; row <= endRow; row++) {
-      final _Band band = _rowMetrics[row]!;
-      final double top = band.start - offset;
-      final double bottom = band.end - offset;
-      final Rect rowRect = Rect.fromLTRB(math.max(0.0, left), math.max(0.0, top), right, bottom);
-      if (rowRect.contains(position)) {
-        return result.addWithPaintOffset(
-          offset: rowRect.topLeft,
+      final _RawTableViewportParentData parentData = _parentDataOf(child);
+      final Rect childRect = parentData.offset & child.size;
+      if (childRect.contains(position)) {
+        // TODO: Do something with return value? Only add Row/Column if child is hit?
+        result.addWithPaintOffset(
+          offset: parentData.offset,
           position: position,
           hitTest: (BoxHitTestResult result, Offset transformed) {
-            assert(position - rowRect.topLeft == transformed);
-            result.add(HitTestEntry(band));
-            return true;
+            assert(transformed == position - parentData.offset);
+            return child.hitTest(result, position: transformed);
           },
         );
-      }
-    }
-    return false;
-  }
-
-  bool _hitTestColumns(BoxHitTestResult result, {required Offset position}) {
-    final double top = _lastStickyRow == null
-        ? _rowMetrics[_firstVisibleCell!.row]!.start - _verticalOffset.pixels
-        : 0.0;
-    final double bottom = _rowMetrics[_lastVisibleCell!.row]!.end - _verticalOffset.pixels + _coveredByStickyRows;
-    if (_lastStickyColumn != null) {
-      final bool isHit = _hitTestColumn(
-        start: 0,
-        end: _lastStickyColumn!,
-        result: result,
-        position: position,
-        top: top,
-        bottom: bottom,
-        offset: 0.0,
-      );
-      if (isHit) {
+        // TODO: make it configurable in which order row/columns are hit?
+        result.add(HitTestEntry(_rowMetrics[parentData.index.row]!));
+        result.add(HitTestEntry(_columnMetrics[parentData.index.column]!));
         return true;
-      }
-    }
-    return _hitTestColumn(
-      start: _firstVisibleCell!.column,
-      end: _lastVisibleCell!.column,
-      result: result,
-      position: position,
-      top: top,
-      bottom: bottom,
-      offset: _horizontalOffset.pixels - _coveredByStickyColumns,
-    );
-  }
-
-  bool _hitTestColumn({
-    required int start,
-    required int end,
-    required BoxHitTestResult result,
-    required Offset position,
-    required double top,
-    required double bottom,
-    required double offset,
-  }) {
-    for (int column = start; column <= end; column++) {
-      final _Band band = _columnMetrics[column]!;
-      final double left = band.start - offset;
-      final double right = band.end - offset;
-      final Rect columnRect = Rect.fromLTRB(math.max(left, 0), math.max(top, 0), right, bottom);
-      if (columnRect.contains(position)) {
-        return result.addWithPaintOffset(
-          offset: columnRect.topLeft,
-          position: position,
-          hitTest: (BoxHitTestResult result, Offset transformed) {
-            assert(position - columnRect.topLeft == transformed);
-            result.add(HitTestEntry(band));
-            return true;
-          },
-        );
       }
     }
     return false;

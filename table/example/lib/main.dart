@@ -191,10 +191,10 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   }
 
   @override
-  int? get numberOfColumns => 8;
+  int? get numberOfColumns => 20;
 
   @override
-  int? get numberOfRows => 20;
+  int? get numberOfRows => 10000;
 
   @override
   int get numberOfStickyRows => 2;
