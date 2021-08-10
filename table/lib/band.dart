@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:table/band_decoration.dart';
 
 class RawTableBand {
   const RawTableBand({
@@ -10,6 +11,7 @@ class RawTableBand {
     this.onEnter,
     this.onExit,
     this.cursor = MouseCursor.defer,
+    this.decoration,
   });
 
   // ---- Sizing ----
@@ -20,8 +22,7 @@ class RawTableBand {
   final PointerEnterEventListener? onEnter;
   final PointerExitEventListener? onExit;
   final MouseCursor cursor;
-
-  // TODO: border, background (= decoration).
+  final RawTableBandDecoration? decoration;
 }
 
 class RawTableBandExtentDelegate {

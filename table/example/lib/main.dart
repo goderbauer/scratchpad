@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:table/band.dart';
+import 'package:table/band_decoration.dart';
 import 'package:table/table.dart';
 
 void main() {
@@ -46,14 +47,6 @@ class _TableExampleState extends State<TableExample> {
         child: RawTableScrollView(
           delegate: delegate,
           verticalController: controller,
-          // border: RawTableBorder.all(color: Colors.deepPurple, width: 10),
-          // frozen: const RawTableFrozenBands(
-          //   top: <RawTableFrozenBand>[
-          //     RawTableFrozenBand(
-          //       index: 1,
-          //    ),
-          //   ],
-          // ),
         ),
       ),
       persistentFooterButtons: <Widget>[
@@ -85,17 +78,23 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   @override
   Widget buildCell(BuildContext context, int column, int row) {
     if (column == keyedChildColumn && row == keyedChildRow) {
-      return Container(
-        key: const ValueKey<String>('counter'),
-        color: Colors.pink,
-        child: CounterCell(column: column, row: row),
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 5.0, right: 5.0),
+        child: Container(
+          key: const ValueKey<String>('counter'),
+          color: Colors.pink,
+          child: CounterCell(column: column, row: row),
+        ),
       );
     }
-    return Container(
-      color: row.isEven
-          ? (column.isEven ? Colors.red : Colors.yellow)
-          : (column.isEven ? Colors.blue : Colors.green),
-      child: Center(child: Text('Tile c: $column, r: $row')),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 5.0, right: 5.0),
+      child: Container(
+        color: row.isEven
+            ? (column.isEven ? Colors.red : Colors.yellow)
+            : (column.isEven ? Colors.blue : Colors.green),
+        child: Center(child: Text('Tile c: $column, r: $row')),
+      ),
     );
   }
 
@@ -108,9 +107,16 @@ class ExampleRawTableDelegate extends RawTableDelegate {
       print('< column $column');
     }
 
+    final RawTableBandDecoration decoration = RawTableBandDecoration(
+      border: RawTableBandBorder(
+        trailing: BorderSide(color: column == numberOfStickyColumns - 1 ? Colors.black : Colors.purple, width: 5),
+      ),
+    );
+
     switch (column % 5) {
       case 0:
         return RawTableBand(
+          decoration: decoration,
           extent: const FixedRawTableBandExtent(100),
           onEnter: onEnter,
           onExit: onExit,
@@ -123,6 +129,7 @@ class ExampleRawTableDelegate extends RawTableDelegate {
         );
       case 1:
         return RawTableBand(
+          decoration: decoration,
           extent: const FractionalRawTableBandExtent(0.5),
           onEnter: onEnter,
           onExit: onExit,
@@ -130,18 +137,21 @@ class ExampleRawTableDelegate extends RawTableDelegate {
         );
       case 2:
         return RawTableBand(
+          decoration: decoration,
           extent: const FixedRawTableBandExtent(120),
           onEnter: onEnter,
           onExit: onExit,
         );
       case 3:
         return RawTableBand(
+          decoration: decoration,
           extent: const FixedRawTableBandExtent(145),
           onEnter: onEnter,
           onExit: onExit,
         );
       case 4:
         return RawTableBand(
+          decoration: decoration,
           extent: const FixedRawTableBandExtent(200),
           onEnter: onEnter,
           onExit: onExit,
@@ -159,10 +169,17 @@ class ExampleRawTableDelegate extends RawTableDelegate {
       print('< row $row');
     }
 
+    final RawTableBandDecoration decoration = RawTableBandDecoration(
+      border: RawTableBandBorder(
+        trailing: BorderSide(color: row == numberOfStickyRows - 1 ? Colors.black : Colors.purple, width: 5),
+      ),
+    );
+
     // return const FixedRawTableDimensionSpec(35);
     switch (row % 3) {
       case 0:
         return RawTableBand(
+          decoration: decoration,
           extent: const FixedRawTableBandExtent(35),
           onEnter: onEnter,
           onExit: onExit,
@@ -175,6 +192,7 @@ class ExampleRawTableDelegate extends RawTableDelegate {
         );
       case 1:
         return RawTableBand(
+          decoration: decoration,
           extent: const FixedRawTableBandExtent(50),
           onEnter: onEnter,
           onExit: onExit,
@@ -182,6 +200,7 @@ class ExampleRawTableDelegate extends RawTableDelegate {
         );
       case 2:
         return RawTableBand(
+          decoration: decoration,
           extent: const FractionalRawTableBandExtent(0.15),
           onEnter: onEnter,
           onExit: onExit,
@@ -197,7 +216,7 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   int? get numberOfRows => 10000;
 
   @override
-  int get numberOfStickyRows => 2;
+  int get numberOfStickyRows => 1;
 
   @override
   int get numberOfStickyColumns => 1;

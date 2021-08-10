@@ -1,3 +1,4 @@
+import 'dart:ffi';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -772,15 +773,78 @@ class _RenderRawTableViewport extends RenderBox {
   }
 
   void _paintContents(PaintingContext context, Offset offset) {
+    final double left = _lastStickyColumn != null ? 0.0 : math.max(0.0, _parentDataOf(_children[_firstVisibleCell]!).offset.dx) + offset.dx;
+    final double right = math.min(size.width, _parentDataOf(_children[_lastVisibleCell]!).offset.dx + _children[_lastVisibleCell]!.size.width) + offset.dx;
+    final double top = _lastStickyColumn != null ? 0.0 : math.max(0.0, _parentDataOf(_children[_firstVisibleCell]!).offset.dy) + offset.dy;
+    final double bottom = math.min(size.height, _parentDataOf(_children[_lastVisibleCell]!).offset.dy + _children[_lastVisibleCell]!.size.height) + offset.dy;
+
+    _paintColumnDecoration(
+      start: _firstVisibleCell!.column,
+      end: _lastVisibleCell!.column,
+      horizontalOffset: _horizontalOffset.pixels - _coveredByStickyColumns + offset.dx,
+      top: top,
+      bottom: bottom,
+      canvas: context.canvas,
+    );
+    _paintRowDecoration(
+      start: _firstVisibleCell!.row,
+      end: _lastVisibleCell!.row,
+      verticalOffset: _verticalOffset.pixels - _coveredByStickyRows + offset.dy,
+      left: left,
+      right: right,
+      canvas: context.canvas,
+    );
     _paintCells(context: context, offset: offset, start: _firstVisibleCell!);
-    if (_lastStickyRow != null) {
-      _paintCells(context: context, offset: offset, start:_CellIndex(row: 0, column: _firstVisibleCell!.column));
-    }
+
     if (_lastStickyColumn != null) {
+      _paintColumnDecoration(
+        start: 0,
+        end: _lastStickyColumn!,
+        horizontalOffset: offset.dx,
+        top: top,
+        bottom: bottom,
+        canvas: context.canvas,
+      );
       _paintCells(context: context, offset: offset, start: _CellIndex(row: _firstVisibleCell!.row, column: 0));
+    }
+    if (_lastStickyRow != null) {
+      _paintRowDecoration(
+        start: 0,
+        end: _lastStickyRow!,
+        verticalOffset: offset.dy,
+        left: left,
+        right: right,
+        canvas: context.canvas,
+      );
+      _paintCells(context: context, offset: offset, start:_CellIndex(row: 0, column: _firstVisibleCell!.column));
     }
     if (_lastStickyRow != null && _lastStickyColumn != null) {
       _paintCells(context: context, offset: offset, start: const _CellIndex(row: 0, column: 0));
+    }
+  }
+
+  void _paintRowDecoration({required int start, required int end, required double verticalOffset, required double left, required double right, required Canvas canvas}) {
+    for (int row = start; row <= end; row++) {
+      final _Band band = _rowMetrics[row]!;
+      if (band.spec.decoration != null) {
+        final double top =  band.start - verticalOffset;
+        final double bottom = top + band.extent;
+        final Rect rect = Rect.fromLTRB(left, top, right, bottom);
+        band.spec.decoration!.paint(canvas, rect, Axis.horizontal);
+      }
+    }
+  }
+
+  void _paintColumnDecoration({required int start, required int end, required double horizontalOffset, required double top, required double bottom, required Canvas canvas}) {
+    for (int column = start; column <= end; column++) {
+      final _Band band = _columnMetrics[column]!;
+      if (band.spec.decoration != null) {
+        final double left =  band.start - horizontalOffset;
+        final double right = left + band.extent;
+        final Rect rect = Rect.fromLTRB(left, top, right, bottom);
+        // print('$horizontalOffset left: $left, right: $right');
+        band.spec.decoration!.paint(canvas, rect, Axis.vertical);
+      }
     }
   }
 
