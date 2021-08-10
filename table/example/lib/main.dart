@@ -1,7 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:table/band.dart';
-import 'package:table/border.dart';
 import 'package:table/table.dart';
 
 void main() {
@@ -42,10 +41,20 @@ class _TableExampleState extends State<TableExample> {
       appBar: AppBar(
         title: const Text('Table Example'),
       ),
-      body: RawTableScrollView(
-        delegate: delegate,
-        verticalController: controller,
-        border: RawTableBorder.all(color: Colors.deepPurple, width: 10),
+      body: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 50),
+        child: RawTableScrollView(
+          delegate: delegate,
+          verticalController: controller,
+          // border: RawTableBorder.all(color: Colors.deepPurple, width: 10),
+          // frozen: const RawTableFrozenBands(
+          //   top: <RawTableFrozenBand>[
+          //     RawTableFrozenBand(
+          //       index: 1,
+          //    ),
+          //   ],
+          // ),
+        ),
       ),
       persistentFooterButtons: <Widget>[
         TextButton(
@@ -182,10 +191,16 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   }
 
   @override
-  int? get columnCount => 8;
+  int? get numberOfColumns => 8;
 
   @override
-  int? get rowCount => 20;
+  int? get numberOfRows => 20;
+
+  @override
+  int get numberOfStickyRows => 2;
+
+  @override
+  int get numberOfStickyColumns => 1;
 
   @override
   bool shouldRebuild(RawTableDelegate oldDelegate) => true;

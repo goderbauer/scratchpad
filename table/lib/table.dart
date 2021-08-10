@@ -8,15 +8,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'band.dart';
-import 'border.dart';
 import 'fake_viewport.dart';
 
 class RawTableScrollView extends StatefulWidget {
-  const RawTableScrollView({Key? key, this.horizontalController, this.verticalController, this.border, required this.delegate}) : super(key: key);
+  const RawTableScrollView({
+    Key? key,
+    this.horizontalController,
+    this.verticalController,
+    required this.delegate,
+  }) : super(key: key);
 
   final ScrollController? horizontalController;
   final ScrollController? verticalController;
-  final RawTableBorder? border;
 
   final RawTableDelegate delegate;
 
@@ -48,12 +51,11 @@ class _RawTableScrollViewState extends State<RawTableScrollView> {
                     horizontalOffset: horizontalOffset,
                     verticalOffset: verticalOffset,
                     delegate: widget.delegate,
-                    border: widget.border,
                   );
                 },
             ),
-            );
-          },
+          );
+        },
       ),
     );
   }
@@ -66,13 +68,11 @@ class _RawTableViewport extends RenderObjectWidget {
     required this.horizontalOffset,
     required this.verticalOffset,
     required this.delegate,
-    this.border,
   }) : super(key: key);
 
   final ViewportOffset horizontalOffset;
   final ViewportOffset verticalOffset;
   final RawTableDelegate delegate;
-  final RawTableBorder? border;
 
   @override
   RenderObjectElement createElement() => _RawTableViewportElement(this);
@@ -84,7 +84,6 @@ class _RawTableViewport extends RenderObjectWidget {
       verticalOffset: verticalOffset,
       delegate: delegate,
       cellManager: context as _RawTableViewportElement,
-      border: border,
     );
   }
 
@@ -94,8 +93,7 @@ class _RawTableViewport extends RenderObjectWidget {
     renderObject
       ..horizontalOffset = horizontalOffset
       ..verticalOffset = verticalOffset
-      ..delegate = delegate
-      ..border = border;
+      ..delegate = delegate;
   }
 }
 
@@ -300,11 +298,9 @@ class _RenderRawTableViewport extends RenderBox {
     required ViewportOffset verticalOffset,
     required RawTableDelegate delegate,
     required this.cellManager,
-    RawTableBorder? border,
   }) : _horizontalOffset = horizontalOffset,
         _verticalOffset = verticalOffset,
-        _delegate = delegate,
-        _border = border;
+        _delegate = delegate;
 
   ViewportOffset get horizontalOffset => _horizontalOffset;
   ViewportOffset _horizontalOffset;
@@ -355,16 +351,6 @@ class _RenderRawTableViewport extends RenderBox {
     if (_delegate.runtimeType != oldDelegate.runtimeType || _delegate.shouldRebuild(oldDelegate)) {
       _handleDelegateNotification();
     }
-  }
-
-  RawTableBorder? get border => _border;
-  RawTableBorder? _border;
-  set border(RawTableBorder? value) {
-    if (_border == value) {
-      return;
-    }
-    _border = value;
-    markNeedsPaint();
   }
 
   final _CellManager cellManager;
@@ -473,13 +459,49 @@ class _RenderRawTableViewport extends RenderBox {
   }
 
   bool _hitTestRows(BoxHitTestResult result, {required Offset position}) {
-    final double left = math.max(0.0, _columnMetrics[_firstVisibleCell!.column]!.start - _horizontalOffset.pixels);
-    final double right = _columnMetrics[_lastVisibleCell!.column]!.end - _horizontalOffset.pixels;
-    for (int row = _firstVisibleCell!.row; row <= _lastVisibleCell!.row; row++) {
+    final double left = _lastStickyColumn == null
+        ? _columnMetrics[_firstVisibleCell!.column]!.start - _horizontalOffset.pixels
+        : 0.0;
+    final double right = _columnMetrics[_lastVisibleCell!.column]!.end - _horizontalOffset.pixels + _coveredByStickyColumns;
+    if (_lastStickyRow != null) {
+      final bool isHit = _hitTestRow(
+        startRow: 0,
+        endRow: _lastStickyRow!,
+        result: result,
+        position: position,
+        left: left,
+        right: right,
+        offset: 0.0,
+      );
+      if (isHit) {
+        return true;
+      }
+    }
+    return _hitTestRow(
+      startRow: _firstVisibleCell!.row,
+      endRow: _lastVisibleCell!.row,
+      result: result,
+      position: position,
+      left: left,
+      right: right,
+      offset: _verticalOffset.pixels - _coveredByStickyRows,
+    );
+  }
+
+  bool _hitTestRow({
+    required int startRow,
+    required int endRow,
+    required BoxHitTestResult result,
+    required Offset position,
+    required double left,
+    required double right,
+    required double offset,
+  }) {
+    for (int row = startRow; row <= endRow; row++) {
       final _Band band = _rowMetrics[row]!;
-      final double top = math.max(0.0, band.start - _verticalOffset.pixels);
-      final double bottom = band.end - _verticalOffset.pixels;
-      final Rect rowRect = Rect.fromLTRB(left, top, right, bottom);
+      final double top = band.start - offset;
+      final double bottom = band.end - offset;
+      final Rect rowRect = Rect.fromLTRB(math.max(0.0, left), math.max(0.0, top), right, bottom);
       if (rowRect.contains(position)) {
         return result.addWithPaintOffset(
           offset: rowRect.topLeft,
@@ -496,13 +518,49 @@ class _RenderRawTableViewport extends RenderBox {
   }
 
   bool _hitTestColumns(BoxHitTestResult result, {required Offset position}) {
-    final double top = math.max(0.0, _rowMetrics[_firstVisibleCell!.row]!.start - _verticalOffset.pixels);
-    final double bottom = _rowMetrics[_lastVisibleCell!.row]!.end - _verticalOffset.pixels;
-    for (int column = _firstVisibleCell!.column; column <= _lastVisibleCell!.column; column++) {
+    final double top = _lastStickyRow == null
+        ? _rowMetrics[_firstVisibleCell!.row]!.start - _verticalOffset.pixels
+        : 0.0;
+    final double bottom = _rowMetrics[_lastVisibleCell!.row]!.end - _verticalOffset.pixels + _coveredByStickyRows;
+    if (_lastStickyColumn != null) {
+      final bool isHit = _hitTestColumn(
+        start: 0,
+        end: _lastStickyColumn!,
+        result: result,
+        position: position,
+        top: top,
+        bottom: bottom,
+        offset: 0.0,
+      );
+      if (isHit) {
+        return true;
+      }
+    }
+    return _hitTestColumn(
+      start: _firstVisibleCell!.column,
+      end: _lastVisibleCell!.column,
+      result: result,
+      position: position,
+      top: top,
+      bottom: bottom,
+      offset: _horizontalOffset.pixels - _coveredByStickyColumns,
+    );
+  }
+
+  bool _hitTestColumn({
+    required int start,
+    required int end,
+    required BoxHitTestResult result,
+    required Offset position,
+    required double top,
+    required double bottom,
+    required double offset,
+  }) {
+    for (int column = start; column <= end; column++) {
       final _Band band = _columnMetrics[column]!;
-      final double left = math.max(0.0, band.start - _horizontalOffset.pixels);
-      final double right = band.end - _horizontalOffset.pixels;
-      final Rect columnRect = Rect.fromLTRB(left, top, right, bottom);
+      final double left = band.start - offset;
+      final double right = band.end - offset;
+      final Rect columnRect = Rect.fromLTRB(math.max(left, 0), math.max(top, 0), right, bottom);
       if (columnRect.contains(position)) {
         return result.addWithPaintOffset(
           offset: columnRect.topLeft,
@@ -538,15 +596,20 @@ class _RenderRawTableViewport extends RenderBox {
   Map<int, _Band> _rowMetrics = <int, _Band>{};
   _CellIndex? _firstVisibleCell;
   _CellIndex? _lastVisibleCell;
+  int? _lastStickyRow;
+  int? _lastStickyColumn;
 
   void _updateMetrics() {
     assert(_needsSpecRebuild || _needsSpecExtentUpdate);
     int? firstColumn;
     int? lastColumn;
     double startOfColumn = 0;
+    double startOfStickyColumn = 0;
+    _lastStickyColumn = null;
     final Map<int, _Band> newColumnMetrics = <int, _Band>{};
     // TODO: consider columnCount == null
-    for (int column = 0; column < delegate.columnCount!; column++) {
+    for (int column = 0; column < delegate.numberOfColumns!; column++) {
+      final bool isSticky = column < delegate.numberOfStickyColumns;
       _Band? band = _columnMetrics.remove(column);
       assert(_needsSpecRebuild || band != null);
       final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildColumnSpec(column) : band!.spec;
@@ -556,23 +619,29 @@ class _RenderRawTableViewport extends RenderBox {
       }
       band ??= _Band();
       band.update(
+        isSticky: isSticky,
         spec: bandSpec,
-        start: startOfColumn,
+        start: isSticky ? startOfStickyColumn : startOfColumn,
         extent: bandSpec.extent.calculateExtent(RawTableBandExtentDelegate(
           viewportExtent: size.width,
-          precedingExtent: startOfColumn,
+          precedingExtent: isSticky ? startOfStickyColumn : startOfColumn,
         )),
       );
       newColumnMetrics[column] = band;
-      final double endOfColumn = startOfColumn + band.extent;
-      if (endOfColumn >= horizontalOffset.pixels && firstColumn == null) {
-        firstColumn = column;
-      }
-      if (endOfColumn >= horizontalOffset.pixels + size.width && lastColumn == null) {
-        lastColumn = column;
-      }
+      if (!isSticky) {
+        final double endOfColumn = startOfColumn + band.extent;
+        if (endOfColumn >= horizontalOffset.pixels && firstColumn == null) {
+          firstColumn = column;
+        }
+        if (endOfColumn >= horizontalOffset.pixels + size.width - startOfStickyColumn && lastColumn == null) {
+          lastColumn = column;
+        }
 
-      startOfColumn = endOfColumn;
+        startOfColumn = endOfColumn;
+      } else {
+        _lastStickyColumn = column;
+        startOfStickyColumn = startOfStickyColumn + band.extent;
+      }
     }
     for (final _Band band in _columnMetrics.values) {
       band.dispose();
@@ -589,9 +658,12 @@ class _RenderRawTableViewport extends RenderBox {
     int? firstRow;
     int? lastRow;
     double startOfRow = 0;
+    double startOfStickyRow = 0;
+    _lastStickyRow = null;
     final Map<int, _Band> newRowMetrics = <int, _Band>{};
     // TODO: consider rowCount == null
-    for (int row = 0; row < delegate.rowCount!; row++) {
+    for (int row = 0; row < delegate.numberOfRows!; row++) {
+      final bool isSticky = row < delegate.numberOfStickyRows;
       _Band? band = _rowMetrics.remove(row);
       assert(_needsSpecRebuild || band != null);
       final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildRowSpec(row) : band!.spec;
@@ -601,23 +673,29 @@ class _RenderRawTableViewport extends RenderBox {
       }
       band ??= _Band();
       band.update(
+        isSticky: isSticky,
         spec: bandSpec,
-        start: startOfRow,
+        start: isSticky ? startOfStickyRow : startOfRow,
         extent: bandSpec.extent.calculateExtent(RawTableBandExtentDelegate(
           viewportExtent: size.height,
-          precedingExtent: startOfRow,
+          precedingExtent: isSticky ? startOfStickyRow : startOfRow,
         )),
       );
       newRowMetrics[row] = band;
-      final double endOfRow = startOfRow + band.extent;
-      if (endOfRow >= verticalOffset.pixels && firstRow == null) {
-        firstRow = row;
-      }
-      if (endOfRow >= verticalOffset.pixels + size.height && lastRow == null) {
-        lastRow = row;
-      }
+      if (!isSticky) {
+        final double endOfRow = startOfRow + band.extent;
+        if (endOfRow >= verticalOffset.pixels && firstRow == null) {
+          firstRow = row;
+        }
+        if (endOfRow >= verticalOffset.pixels + size.height - startOfStickyRow && lastRow == null) {
+          lastRow = row;
+        }
 
-      startOfRow = endOfRow;
+        startOfRow = endOfRow;
+      } else {
+        _lastStickyRow = row;
+        startOfStickyRow = startOfStickyRow + band.extent;
+      }
     }
     for (final _Band band in _rowMetrics.values) {
       band.dispose();
@@ -643,12 +721,15 @@ class _RenderRawTableViewport extends RenderBox {
     final _Band lastAvailableColumn = _columnMetrics[_columnMetrics.length - 1]!;
     final double endOfLastAvailableColumn = lastAvailableColumn.start + lastAvailableColumn.extent;
     // TODO: Do something with return values
-    horizontalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableColumn - size.width));
-    verticalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableRow - size.height));
+    horizontalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableColumn - size.width + startOfStickyColumn));
+    verticalOffset.applyContentDimensions(0.0, math.max(0.0, endOfLastAvailableRow - size.height + startOfStickyRow));
 
     _needsSpecRebuild = false;
     _needsSpecExtentUpdate = false;
   }
+
+  double get _coveredByStickyRows => _lastStickyRow != null ? _rowMetrics[_lastStickyRow]!.end : 0.0;
+  double get _coveredByStickyColumns => _lastStickyColumn != null ? _columnMetrics[_lastStickyColumn]!.end : 0.0;
 
   @override
   void performLayout() {
@@ -658,8 +739,11 @@ class _RenderRawTableViewport extends RenderBox {
       // TODO: unify this with _updateMetrics.
       int? firstColumn;
       int? lastColumn;
-      final double lastVisibleColumnPixel = horizontalOffset.pixels + size.width;
+      final double lastVisibleColumnPixel = horizontalOffset.pixels + size.width - _coveredByStickyColumns;
       for (int column = 0; column < _columnMetrics.length; column++) {
+        if (_columnMetrics[column]!.isSticky) {
+          continue;
+        }
         final double endOfColumn = _columnMetrics[column]!.end;
         if (endOfColumn >= horizontalOffset.pixels && firstColumn == null) {
           firstColumn = column;
@@ -679,8 +763,11 @@ class _RenderRawTableViewport extends RenderBox {
 
       int? firstRow;
       int? lastRow;
-      final double lastVisibleRowPixel = verticalOffset.pixels + size.height;
+      final double lastVisibleRowPixel = verticalOffset.pixels + size.height - _coveredByStickyRows;
       for (int row = 0; row < _rowMetrics.length; row++) {
+        if (_rowMetrics[row]!.isSticky) {
+          continue;
+        }
         final double endOfRow = _rowMetrics[row]!.end;
         if (endOfRow >= verticalOffset.pixels && firstRow == null) {
           firstRow = row;
@@ -704,18 +791,56 @@ class _RenderRawTableViewport extends RenderBox {
 
     final _CellIndex firstCell = _firstVisibleCell!;
     final _CellIndex lastCell = _lastVisibleCell!;
-    final double offsetIntoColumn = horizontalOffset.pixels - _columnMetrics[firstCell.column]!.start;
-    final double offsetIntoRow = verticalOffset.pixels - _rowMetrics[firstCell.row]!.start;
+    final double offsetIntoColumn = horizontalOffset.pixels - _columnMetrics[firstCell.column]!.start - _coveredByStickyColumns;
+    final double offsetIntoRow = verticalOffset.pixels - _rowMetrics[firstCell.row]!.start - _coveredByStickyRows;
 
     // ---- layout columns, rows ----
     cellManager.startLayout();
-    double yPaintOffset = -offsetIntoRow;
+    // sticky
+    if (_lastStickyRow != null) {
+      _layoutCells(
+        start: _CellIndex(row: 0, column: firstCell.column),
+        end: _CellIndex(row: _lastStickyRow!, column: lastCell.column),
+        offset: Offset(offsetIntoColumn, 0),
+      );
+    }
+    if (_lastStickyRow != null && _lastStickyColumn != null) {
+      _layoutCells(
+        start: const _CellIndex(row: 0, column: 0),
+        end: _CellIndex(row: _lastStickyRow!, column: _lastStickyColumn!),
+        offset: Offset.zero,
+      );
+    }
+    if (_lastStickyColumn != null) {
+      _layoutCells(
+        start: _CellIndex(row: firstCell.row, column: 0),
+        end: _CellIndex(row: lastCell.row, column: _lastStickyColumn!),
+        offset: Offset(0, offsetIntoRow),
+      );
+    }
+    // scrolling columns, rows
+    _layoutCells(
+      start: firstCell,
+      end: lastCell,
+      offset: Offset(offsetIntoColumn, offsetIntoRow),
+    );
+    invokeLayoutCallback<BoxConstraints>((BoxConstraints _) {
+      cellManager.endLayout();
+    });
+
+    _needsCellRebuild = false;
+    assert(_debugOrphans?.isEmpty ?? true);
+    // TODO: assert that all children are linked
+  }
+
+  void _layoutCells({required _CellIndex start, required _CellIndex end, required Offset offset}) {
+    double yPaintOffset = -offset.dy;
     RenderBox? previousCell;
-    for (int row = firstCell.row; row <= lastCell.row; row += 1) {
-      double xPaintOffset = -offsetIntoColumn;
+    for (int row = start.row; row <= end.row; row += 1) {
+      double xPaintOffset = -offset.dx;
       final _Band rowMetric = _rowMetrics[row]!;
       final double rowHeight = rowMetric.extent;
-      for (int column = firstCell.column; column <= lastCell.column; column += 1) {
+      for (int column = start.column; column <= end.column; column += 1) {
         final double columnWidth = _columnMetrics[column]!.extent;
         final _CellIndex index = _CellIndex(row: row, column: column);
         if (_needsCellRebuild || !_children.containsKey(index)) {
@@ -748,13 +873,6 @@ class _RenderRawTableViewport extends RenderBox {
       }
       yPaintOffset += rowHeight;
     }
-
-    invokeLayoutCallback<BoxConstraints>((BoxConstraints _) {
-      cellManager.endLayout();
-    });
-    _needsCellRebuild = false;
-    assert(_debugOrphans?.isEmpty ?? true);
-    // TODO: assert that all children are linked
   }
 
   final LayerHandle<ClipRectLayer> _clipRectLayer = LayerHandle<ClipRectLayer>();
@@ -783,59 +901,23 @@ class _RenderRawTableViewport extends RenderBox {
     return _parentDataOf(child).nextSibling;
   }
 
-  // RenderBox? _cellBefore(RenderBox child) {
-  //   return _parentDataOf(child).previousSibling;
-  // }
-
-  Offset _paintOffsetOf(RenderBox child) {
-    return _parentDataOf(child).offset;
-  }
-
-  Offset _paintEndOffsetOf(RenderBox child) {
-    final BoxParentData childParentData = _parentDataOf(child);
-    return Offset(childParentData.offset.dx + child.size.width, childParentData.offset.dy + child.size.height);
-  }
-
   void _paintContents(PaintingContext context, Offset offset) {
-    final List<double> _rowOffsets = <double>[];
-    final List<double> _columnOffsets = <double>[];
-    int lastColumn = -1;
-    int lastRow = - 1;
+    _paintCells(context: context, offset: offset, start: _firstVisibleCell!);
+    if (_lastStickyRow != null) {
+      _paintCells(context: context, offset: offset, start:_CellIndex(row: 0, column: _firstVisibleCell!.column));
+    }
+    if (_lastStickyColumn != null) {
+      _paintCells(context: context, offset: offset, start: _CellIndex(row: _firstVisibleCell!.row, column: 0));
+    }
+    if (_lastStickyRow != null && _lastStickyColumn != null) {
+      _paintCells(context: context, offset: offset, start: const _CellIndex(row: 0, column: 0));
+    }
+  }
 
-    for (RenderBox? cell = _children[_firstVisibleCell]; cell != null; cell = _cellAfter(cell)) {
+  void _paintCells({required PaintingContext context, required _CellIndex start, required Offset offset}) {
+    for (RenderBox? cell = _children[start]; cell != null; cell = _cellAfter(cell)) {
       final _RawTableViewportParentData parentData = _parentDataOf(cell);
       context.paintChild(cell, offset + parentData.offset);
-      if (parentData.index.column > lastColumn && parentData.index.column != 0) {
-        _columnOffsets.add(parentData.offset.dx + offset.dx);
-        lastColumn = parentData.index.column;
-      }
-      if (parentData.index.row > lastRow && parentData.index.row != 0) {
-        _rowOffsets.add(parentData.offset.dy + offset.dy);
-        lastRow = parentData.index.row;
-      }
-    }
-    final Offset lastChild = _paintEndOffsetOf(_children[_lastVisibleCell]!);
-    if (_lastVisibleCell!.row != _rowMetrics.length - 1) {
-      _rowOffsets.add(lastChild.dy + offset.dy);
-    }
-    if (_lastVisibleCell!.column != _columnMetrics.length - 1) {
-      _columnOffsets.add(lastChild.dx + offset.dx);
-    }
-
-    if (border != null && _children.isNotEmpty) {
-      final Offset firstVisibleOffset = _paintOffsetOf(_children[_firstVisibleCell]!) + offset;
-      final Offset lastVisibleOffset = _paintEndOffsetOf(_children[_lastVisibleCell]!) + offset;
-      final Rect drawnRect = Rect.fromPoints(firstVisibleOffset, lastVisibleOffset);
-      final Rect visibleRect = (offset & size).intersect(drawnRect);
-
-      final Rect outerOffsets = Rect.fromLTRB(
-        _firstVisibleCell!.column == 0 ? drawnRect.left : double.nan,
-        _firstVisibleCell!.row == 0 ? drawnRect.top : double.nan,
-        _lastVisibleCell!.column == _columnMetrics.length - 1 ? drawnRect.right : double.nan,
-        _lastVisibleCell!.row == _rowMetrics.length - 1 ? drawnRect.bottom : double.nan,
-      );
-
-      border!.paint(context.canvas, visibleRect, _rowOffsets, _columnOffsets, outerOffsets);
     }
   }
 
@@ -907,8 +989,11 @@ class _RenderRawTableViewport extends RenderBox {
 abstract class RawTableDelegate extends ChangeNotifier {
   Widget buildCell(BuildContext context, int column, int row);
 
-  int? get columnCount;
-  int? get rowCount;
+  int? get numberOfColumns;
+  int? get numberOfRows;
+
+  int get numberOfStickyRows => 0;
+  int get numberOfStickyColumns => 0;
 
   RawTableBand? buildColumnSpec(int column);
   RawTableBand? buildRowSpec(int row);
@@ -966,13 +1051,17 @@ class _Band with Diagnosticable implements HitTestTarget, MouseTrackerAnnotation
   RawTableBand get spec => _spec!;
   RawTableBand? _spec;
 
+  bool get isSticky => _isSticky;
+  late bool _isSticky;
+
   double get end => start + extent;
 
   // ---- Band Management ----
 
-  void update({required RawTableBand spec, required double start, required double extent}) {
+  void update({required RawTableBand spec, required double start, required double extent, required bool isSticky}) {
     _start = start;
     _extent = extent;
+    _isSticky = isSticky;
     if (spec == _spec) {
       return;
     }
