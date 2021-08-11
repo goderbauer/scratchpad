@@ -11,7 +11,8 @@ class RawTableBand {
     this.onEnter,
     this.onExit,
     this.cursor = MouseCursor.defer,
-    this.decoration,
+    this.backgroundDecoration,
+    this.foregroundDecoration,
   });
 
   // ---- Sizing ----
@@ -22,7 +23,9 @@ class RawTableBand {
   final PointerEnterEventListener? onEnter;
   final PointerExitEventListener? onExit;
   final MouseCursor cursor;
-  final RawTableBandDecoration? decoration;
+  final RawTableBandDecoration? backgroundDecoration;
+  final RawTableBandDecoration? foregroundDecoration;
+
 }
 
 class RawTableBandExtentDelegate {

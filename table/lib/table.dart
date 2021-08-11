@@ -1,4 +1,4 @@
-import 'dart:ffi';
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -7,6 +7,7 @@ import 'package:flutter/material.dart' show Scrollbar;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:table/band_decoration.dart';
 
 import 'band.dart';
 import 'fake_viewport.dart';
@@ -863,28 +864,46 @@ class _RenderRawTableViewport extends RenderBox {
   // }
 
   void _paintCells({required PaintingContext context, required _CellIndex start, required _CellIndex end, required Offset offset}) {
+    final LinkedHashMap<Rect, RawTableBandDecoration> _foregroundColumns = LinkedHashMap<Rect, RawTableBandDecoration>();
     for (int column = start.column; column <= end.column; column++) {
       final _Band band = _columnMetrics[column]!;
-      if (band.spec.decoration != null) {
+      if (band.spec.backgroundDecoration != null || band.spec.foregroundDecoration != null) {
         final _RawTableViewportParentData startParentData = _parentDataOf(_children[_CellIndex(row: start.row, column: column)]!);
         final RenderBox endChild = _children[_CellIndex(row: end.row, column: column)]!;
         final Rect rect = Rect.fromPoints(startParentData.offset + offset, _parentDataOf(endChild).offset + Offset(endChild.size.width, endChild.size.height) + offset);
-        band.spec.decoration!.paint(context.canvas, rect, Axis.vertical);
+        if (band.spec.backgroundDecoration != null) {
+          band.spec.backgroundDecoration!.paint(context.canvas, rect, Axis.vertical);
+        } else {
+          assert(band.spec.foregroundDecoration != null);
+          _foregroundColumns[rect] = band.spec.foregroundDecoration!;
+        }
       }
     }
+    final LinkedHashMap<Rect, RawTableBandDecoration> _foregroundRows = LinkedHashMap<Rect, RawTableBandDecoration>();
     for (int row = start.row; row <= end.row; row++) {
       final _Band band = _rowMetrics[row]!;
-      if (band.spec.decoration != null) {
+      if (band.spec.backgroundDecoration != null || band.spec.foregroundDecoration != null) {
         final _RawTableViewportParentData startParentData = _parentDataOf(_children[_CellIndex(row: row, column: start.column)]!);
         final RenderBox endChild = _children[_CellIndex(row: row, column: end.column)]!;
         final Rect rect = Rect.fromPoints(startParentData.offset + offset, _parentDataOf(endChild).offset + Offset(endChild.size.width, endChild.size.height) + offset);
-        band.spec.decoration!.paint(context.canvas, rect, Axis.horizontal);
+        if (band.spec.backgroundDecoration != null) {
+          band.spec.backgroundDecoration!.paint(context.canvas, rect, Axis.horizontal);
+        } else {
+          assert(band.spec.foregroundDecoration != null);
+          _foregroundRows[rect] = band.spec.foregroundDecoration!;
+        }
       }
     }
     for (RenderBox? cell = _children[start]; cell != null; cell = _cellAfter(cell)) {
       final _RawTableViewportParentData parentData = _parentDataOf(cell);
       context.paintChild(cell, offset + parentData.offset);
     }
+    _foregroundRows.forEach((Rect rect, RawTableBandDecoration decoration) {
+      decoration.paint(context.canvas, rect, Axis.horizontal);
+    });
+    _foregroundColumns.forEach((Rect rect, RawTableBandDecoration decoration) {
+      decoration.paint(context.canvas, rect, Axis.vertical);
+    });
   }
 
   @override
