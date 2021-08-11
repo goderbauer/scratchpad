@@ -94,7 +94,7 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   }
 
   @override
-  RawTableBand? buildColumnSpec(int column) {
+  RawTableBand buildColumnSpec(int column) {
     void onEnter(PointerEnterEvent _) {
       print('> column $column');
     }
@@ -156,11 +156,11 @@ class ExampleRawTableDelegate extends RawTableDelegate {
           onExit: onExit,
         );
     }
-    return null;
+    throw 'unreachable';
   }
 
   @override
-  RawTableBand? buildRowSpec(int row) {
+  RawTableBand buildRowSpec(int row) {
     void onEnter(PointerEnterEvent _) {
       print('> row $row');
     }
@@ -210,14 +210,14 @@ class ExampleRawTableDelegate extends RawTableDelegate {
           onExit: onExit,
         );
     }
-    return null;
+    throw 'unreachable';
   }
 
   @override
-  int? get numberOfColumns => 20;
+  int get numberOfColumns => 20;
 
   @override
-  int? get numberOfRows => 10000;
+  int get numberOfRows => 10000;
 
   @override
   int get numberOfStickyRows => 1;

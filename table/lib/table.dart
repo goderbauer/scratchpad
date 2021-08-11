@@ -473,22 +473,22 @@ class _RenderRawTableViewport extends RenderBox {
 
   void _updateMetrics() {
     assert(_needsSpecRebuild || _needsSpecExtentUpdate);
+
+    _firstVisibleCell = null;
+    _lastVisibleCell = null;
+    _lastStickyColumn = null;
+    _lastStickyRow = null;
+
     int? firstColumn;
     int? lastColumn;
     double startOfColumn = 0;
     double startOfStickyColumn = 0;
-    _lastStickyColumn = null;
     final Map<int, _Band> newColumnMetrics = <int, _Band>{};
-    // TODO: consider columnCount == null
-    for (int column = 0; column < delegate.numberOfColumns!; column++) {
+    for (int column = 0; column < delegate.numberOfColumns; column++) {
       final bool isSticky = column < delegate.numberOfStickyColumns;
       _Band? band = _columnMetrics.remove(column);
       assert(_needsSpecRebuild || band != null);
-      final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildColumnSpec(column) : band!.spec;
-      if (bandSpec == null) {
-        // TODO
-        return;
-      }
+      final RawTableBand bandSpec = _needsSpecRebuild ? delegate.buildColumnSpec(column) : band!.spec;
       band ??= _Band();
       band.update(
         isSticky: isSticky,
@@ -515,6 +515,7 @@ class _RenderRawTableViewport extends RenderBox {
         startOfStickyColumn = startOfStickyColumn + band.extent;
       }
     }
+    assert(newColumnMetrics.length >= delegate.numberOfStickyColumns);
     for (final _Band band in _columnMetrics.values) {
       band.dispose();
     }
@@ -531,18 +532,12 @@ class _RenderRawTableViewport extends RenderBox {
     int? lastRow;
     double startOfRow = 0;
     double startOfStickyRow = 0;
-    _lastStickyRow = null;
     final Map<int, _Band> newRowMetrics = <int, _Band>{};
-    // TODO: consider rowCount == null
-    for (int row = 0; row < delegate.numberOfRows!; row++) {
+    for (int row = 0; row < delegate.numberOfRows; row++) {
       final bool isSticky = row < delegate.numberOfStickyRows;
       _Band? band = _rowMetrics.remove(row);
       assert(_needsSpecRebuild || band != null);
-      final RawTableBand? bandSpec = _needsSpecRebuild ? delegate.buildRowSpec(row) : band!.spec;
-      if (bandSpec == null) {
-        // TODO
-        return;
-      }
+      final RawTableBand bandSpec = _needsSpecRebuild ? delegate.buildRowSpec(row) : band!.spec;
       band ??= _Band();
       band.update(
         isSticky: isSticky,
@@ -569,6 +564,7 @@ class _RenderRawTableViewport extends RenderBox {
         startOfStickyRow = startOfStickyRow + band.extent;
       }
     }
+    assert(newRowMetrics.length >= delegate.numberOfStickyRows);
     for (final _Band band in _rowMetrics.values) {
       band.dispose();
     }
@@ -603,62 +599,74 @@ class _RenderRawTableViewport extends RenderBox {
   double get _coveredByStickyRows => _lastStickyRow != null ? _rowMetrics[_lastStickyRow]!.end : 0.0;
   double get _coveredByStickyColumns => _lastStickyColumn != null ? _columnMetrics[_lastStickyColumn]!.end : 0.0;
 
+  void _updateFirstAndLastVisibleCell() {
+    // TODO: There's some overlap with _updateMetrics.
+    _firstVisibleCell = null;
+    _lastVisibleCell = null;
+
+    int? firstColumn;
+    int? lastColumn;
+    final double lastVisibleColumnPixel = horizontalOffset.pixels + size.width - _coveredByStickyColumns;
+    for (int column = 0; column < _columnMetrics.length; column++) {
+      if (_columnMetrics[column]!.isSticky) {
+        continue;
+      }
+      final double endOfColumn = _columnMetrics[column]!.end;
+      if (endOfColumn >= horizontalOffset.pixels && firstColumn == null) {
+        firstColumn = column;
+      }
+      if (endOfColumn >= lastVisibleColumnPixel && lastColumn == null) {
+        lastColumn = column;
+        break;
+      }
+    }
+    if (firstColumn == null && _columnMetrics.isNotEmpty) {
+      // TODO: we are scrolled too far.
+    }
+    if (lastColumn == null) {
+      // TODO: its okay if rows can't fill whole viewport, if they could: correction
+      lastColumn = _columnMetrics.length - 1;
+    }
+
+    int? firstRow;
+    int? lastRow;
+    final double lastVisibleRowPixel = verticalOffset.pixels + size.height - _coveredByStickyRows;
+    for (int row = 0; row < _rowMetrics.length; row++) {
+      if (_rowMetrics[row]!.isSticky) {
+        continue;
+      }
+      final double endOfRow = _rowMetrics[row]!.end;
+      if (endOfRow >= verticalOffset.pixels && firstRow == null) {
+        firstRow = row;
+      }
+      if (endOfRow >= lastVisibleRowPixel && lastRow == null) {
+        lastRow = row;
+        break;
+      }
+    }
+    if (firstRow == null && _rowMetrics.isNotEmpty) {
+      // TODO: we are scrolled too far.
+    }
+    if (lastRow == null) {
+      // TODO: its okay if rows can't fill whole viewport, if they could: correction
+      lastRow = _rowMetrics.length - 1;
+    }
+
+    _firstVisibleCell = _CellIndex(row: firstRow!, column: firstColumn!);
+    _lastVisibleCell = _CellIndex(row: lastRow, column: lastColumn);
+  }
+
   @override
   void performLayout() {
     if (_needsSpecRebuild || _needsSpecExtentUpdate) {
       _updateMetrics();
     } else {
-      // TODO: unify this with _updateMetrics.
-      int? firstColumn;
-      int? lastColumn;
-      final double lastVisibleColumnPixel = horizontalOffset.pixels + size.width - _coveredByStickyColumns;
-      for (int column = 0; column < _columnMetrics.length; column++) {
-        if (_columnMetrics[column]!.isSticky) {
-          continue;
-        }
-        final double endOfColumn = _columnMetrics[column]!.end;
-        if (endOfColumn >= horizontalOffset.pixels && firstColumn == null) {
-          firstColumn = column;
-        }
-        if (endOfColumn >= lastVisibleColumnPixel && lastColumn == null) {
-          lastColumn = column;
-          break;
-        }
-      }
-      if (firstColumn == null && _columnMetrics.isNotEmpty) {
-        // TODO: we are scrolled too far.
-      }
-      if (lastColumn == null) {
-        // TODO: its okay if rows can't fill whole viewport, if they could: correction
-        lastColumn = _columnMetrics.length - 1;
-      }
-
-      int? firstRow;
-      int? lastRow;
-      final double lastVisibleRowPixel = verticalOffset.pixels + size.height - _coveredByStickyRows;
-      for (int row = 0; row < _rowMetrics.length; row++) {
-        if (_rowMetrics[row]!.isSticky) {
-          continue;
-        }
-        final double endOfRow = _rowMetrics[row]!.end;
-        if (endOfRow >= verticalOffset.pixels && firstRow == null) {
-          firstRow = row;
-        }
-        if (endOfRow >= lastVisibleRowPixel && lastRow == null) {
-          lastRow = row;
-          break;
-        }
-      }
-      if (firstRow == null && _rowMetrics.isNotEmpty) {
-        // TODO: we are scrolled too far.
-      }
-      if (lastRow == null) {
-        // TODO: its okay if rows can't fill whole viewport, if they could: correction
-        lastRow = _rowMetrics.length - 1;
-      }
-
-      _firstVisibleCell = _CellIndex(row: firstRow!, column: firstColumn!);
-      _lastVisibleCell = _CellIndex(row: lastRow, column: lastColumn);
+      _updateFirstAndLastVisibleCell();
+    }
+    if (_firstVisibleCell == null && _lastStickyRow == null && _lastStickyColumn == null) {
+      assert(_lastVisibleCell == null);
+      assert(_children.isEmpty);
+      return;
     }
 
     final _CellIndex firstCell = _firstVisibleCell!;
@@ -668,7 +676,6 @@ class _RenderRawTableViewport extends RenderBox {
 
     // ---- layout columns, rows ----
     cellManager.startLayout();
-    // sticky
     if (_lastStickyRow != null) {
       _layoutCells(
         start: _CellIndex(row: 0, column: firstCell.column),
@@ -749,56 +756,43 @@ class _RenderRawTableViewport extends RenderBox {
 
   final LayerHandle<ClipRectLayer> _clipRectLayer = LayerHandle<ClipRectLayer>();
 
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    if (_children.isEmpty) {
-      return;
-    }
-    // TODO: Only if we actually have overflow and clipping is enabled.
-    _clipRectLayer.layer = context.pushClipRect(
-      needsCompositing,
-      offset,
-      Offset.zero & size,
-      _paintContents,
-      clipBehavior: Clip.hardEdge, // TODO: pass in
-      oldLayer: _clipRectLayer.layer,
-    );
-  }
-
-  _RawTableViewportParentData _parentDataOf(RenderBox child) {
-    return child.parentData! as _RawTableViewportParentData;
-  }
-
-  RenderBox? _cellAfter(RenderBox child) {
-    return _parentDataOf(child).nextSibling;
-  }
-
   final LayerHandle<ClipRectLayer> _clipStickyRowsHandle = LayerHandle<ClipRectLayer>();
   final LayerHandle<ClipRectLayer> _clipStickyColumnsHandle = LayerHandle<ClipRectLayer>();
   final LayerHandle<ClipRectLayer> _clipCellsHandle = LayerHandle<ClipRectLayer>();
 
-  void _paintContents(PaintingContext context, Offset offset) {
-    _clipCellsHandle.layer = context.pushClipRect(
-      needsCompositing,
-      offset,
-      Rect.fromLTWH(_coveredByStickyColumns, _coveredByStickyRows, size.width - _coveredByStickyColumns, size.height - _coveredByStickyRows),
-      (PaintingContext context, Offset offset) {
-        _paintCells(
-          context: context,
-          offset: offset,
-          start: _firstVisibleCell!,
-          end: _lastVisibleCell!,
-        );
-      },
-      oldLayer: _clipCellsHandle.layer,
-    );
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (_firstVisibleCell == null && _lastStickyRow == null && _lastStickyColumn == null) {
+      assert(_lastVisibleCell == null);
+      assert(_children.isEmpty);
+      return;
+    }
+    // TODO: Only if we actually have overflow and clipping is enabled.
+    // TODO: make type of clipping configurable.
+    if (_firstVisibleCell != null) {
+      assert(_lastVisibleCell != null);
+      _clipCellsHandle.layer = context.pushClipRect(
+        needsCompositing,
+        offset,
+        Rect.fromLTWH(_coveredByStickyColumns, _coveredByStickyRows, size.width - _coveredByStickyColumns, size.height - _coveredByStickyRows),
+            (PaintingContext context, Offset offset) {
+          _paintCells(
+            context: context,
+            offset: offset,
+            start: _firstVisibleCell!,
+            end: _lastVisibleCell!,
+          );
+        },
+        oldLayer: _clipCellsHandle.layer,
+      );
+    }
 
     if (_lastStickyColumn != null) {
       _clipStickyColumnsHandle.layer = context.pushClipRect(
         needsCompositing,
         offset,
         Rect.fromLTWH(0.0, _coveredByStickyRows, _coveredByStickyColumns, size.height - _coveredByStickyRows),
-        (PaintingContext context, Offset offset) {
+            (PaintingContext context, Offset offset) {
           _paintCells(
             context: context,
             offset: offset,
@@ -811,12 +805,13 @@ class _RenderRawTableViewport extends RenderBox {
     } else {
       _clipStickyColumnsHandle.layer = null;
     }
+
     if (_lastStickyRow != null) {
       _clipStickyRowsHandle.layer = context.pushClipRect(
         needsCompositing,
         offset,
         Rect.fromLTWH(_coveredByStickyColumns, 0.0, size.width - _coveredByStickyColumns, _coveredByStickyRows),
-        (PaintingContext context, Offset offset) {
+            (PaintingContext context, Offset offset) {
           _paintCells(
             context: context,
             offset: offset,
@@ -829,6 +824,7 @@ class _RenderRawTableViewport extends RenderBox {
     } else {
       _clipStickyRowsHandle.layer = null;
     }
+
     if (_lastStickyRow != null && _lastStickyColumn != null) {
       _paintCells(
         context: context,
@@ -838,30 +834,14 @@ class _RenderRawTableViewport extends RenderBox {
       );
     }
   }
-  //
-  // void _paintRowDecoration({required int start, required int end, required double verticalOffset, required double left, required double right, required Canvas canvas}) {
-  //   for (int row = start; row <= end; row++) {
-  //     final _Band band = _rowMetrics[row]!;
-  //     if (band.spec.decoration != null) {
-  //       final double top =  band.start - verticalOffset;
-  //       final double bottom = top + band.extent;
-  //       final Rect rect = Rect.fromLTRB(left, top, right, bottom);
-  //       band.spec.decoration!.paint(canvas, rect, Axis.horizontal);
-  //     }
-  //   }
-  // }
-  //
-  // void _paintColumnDecoration({required int start, required int end, required double horizontalOffset, required double top, required double bottom, required Canvas canvas}) {
-  //   for (int column = start; column <= end; column++) {
-  //     final _Band band = _columnMetrics[column]!;
-  //     if (band.spec.decoration != null) {
-  //       final double left =  band.start - horizontalOffset;
-  //       final double right = left + band.extent;
-  //       final Rect rect = Rect.fromLTRB(left, top, right, bottom);
-  //       band.spec.decoration!.paint(canvas, rect, Axis.vertical);
-  //     }
-  //   }
-  // }
+
+  _RawTableViewportParentData _parentDataOf(RenderBox child) {
+    return child.parentData! as _RawTableViewportParentData;
+  }
+
+  RenderBox? _cellAfter(RenderBox child) {
+    return _parentDataOf(child).nextSibling;
+  }
 
   void _paintCells({required PaintingContext context, required _CellIndex start, required _CellIndex end, required Offset offset}) {
     final LinkedHashMap<Rect, RawTableBandDecoration> _foregroundColumns = LinkedHashMap<Rect, RawTableBandDecoration>();
@@ -977,14 +957,16 @@ class _RenderRawTableViewport extends RenderBox {
 abstract class RawTableDelegate extends ChangeNotifier {
   Widget buildCell(BuildContext context, int column, int row);
 
-  int? get numberOfColumns;
-  int? get numberOfRows;
+  // TODO: Allow tables with unknown column.row count, i.e. numberOfColumns or numberOfRows is null.
+  //   Also: buildColumnSpec/buildRowSpec may then return null to indicate the end.
+  int get numberOfColumns;
+  int get numberOfRows;
 
   int get numberOfStickyRows => 0;
   int get numberOfStickyColumns => 0;
 
-  RawTableBand? buildColumnSpec(int column);
-  RawTableBand? buildRowSpec(int row);
+  RawTableBand buildColumnSpec(int column);
+  RawTableBand buildRowSpec(int row);
 
   bool shouldRebuild(RawTableDelegate oldDelegate);
 }
