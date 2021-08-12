@@ -1,5 +1,6 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:table/band.dart';
 import 'package:table/band_decoration.dart';
 import 'package:table/table.dart';
@@ -60,6 +61,17 @@ class _TableExampleState extends State<TableExample> {
           },
           child: const Text('jump'),
         ),
+        TextButton(
+          onPressed: () {
+            delegate.numberOfRows += 10;
+            if (controller.hasClients && controller.position.pixels == controller.position.maxScrollExtent) {
+              SchedulerBinding.instance!.addPostFrameCallback((_) {
+                controller.animateTo(controller.position.maxScrollExtent, duration: const Duration(seconds: 1), curve: Curves.ease);
+              });
+            }
+          },
+          child: const Text('add 10'),
+        ),
       ],
     );
   }
@@ -89,7 +101,7 @@ class ExampleRawTableDelegate extends RawTableDelegate {
       // color: row.isEven
       //     ? (column.isEven ? Colors.red : Colors.yellow)
       //     : (column.isEven ? Colors.blue : Colors.green),
-      child: Center(child: Text('Tile c: $column, r: $row')),
+      child: Center(child: Text('Tile c: $column, r: $row, v: ${_rows[row]}')),
     );
   }
 
@@ -216,14 +228,23 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   @override
   int get numberOfColumns => 20;
 
-  @override
-  int get numberOfRows => 10000;
+  List<int> _rows = List<int>.generate(10, (int index) => index);
 
   @override
-  int get numberOfStickyRows => 2;
+  int get numberOfRows => _rows.length;
+  set numberOfRows(int value) {
+    if (value == numberOfRows) {
+      return;
+    }
+    _rows = List<int>.generate(value, (int index) => index);
+    notifyListeners();
+  }
 
   @override
-  int get numberOfStickyColumns => 1;
+  int get numberOfStickyRows => 0;
+
+  @override
+  int get numberOfStickyColumns => 0;
 
   @override
   bool shouldRebuild(RawTableDelegate oldDelegate) => true;
