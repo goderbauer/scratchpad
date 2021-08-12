@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart' show Scrollbar;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -37,28 +36,24 @@ class _RawTableScrollViewState extends State<RawTableScrollView> {
   @override
   Widget build(BuildContext context) {
     // TODO: deal with panning
-    return Scrollbar( // TODO: remove this when MaterialScrollBehavior auto-adds scrollbars on horizontal scrollers
+    return Scrollable(
       controller: horizontalController,
-      isAlwaysShown: true,
-      child:  Scrollable(
-        controller: horizontalController,
-        axisDirection: AxisDirection.right, // TODO: make these configurable
-        viewportBuilder: (BuildContext context, ViewportOffset horizontalOffset) {
-          return FakeViewport( // This is only here to increase depth of ScrollNotification
-            child: Scrollable(
-                controller: verticalController,
-                axisDirection: AxisDirection.down,
-                viewportBuilder: (BuildContext context, ViewportOffset verticalOffset) {
-                  return _RawTableViewport(
-                    horizontalOffset: horizontalOffset,
-                    verticalOffset: verticalOffset,
-                    delegate: widget.delegate,
-                  );
-                },
-            ),
-          );
-        },
-      ),
+      axisDirection: AxisDirection.right, // TODO: make these configurable
+      viewportBuilder: (BuildContext context, ViewportOffset horizontalOffset) {
+        return FakeViewport( // This is only here to increase depth of ScrollNotification
+          child: Scrollable(
+            controller: verticalController,
+            axisDirection: AxisDirection.down,
+            viewportBuilder: (BuildContext context, ViewportOffset verticalOffset) {
+              return _RawTableViewport(
+                horizontalOffset: horizontalOffset,
+                verticalOffset: verticalOffset,
+                delegate: widget.delegate,
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

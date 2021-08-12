@@ -172,7 +172,7 @@ class ExampleRawTableDelegate extends RawTableDelegate {
       color: row.isEven ? Colors.grey : null,
       border: RawTableBandBorder(
         trailing: BorderSide(
-          color: row == numberOfStickyRows - 1 ? Colors.black : Colors.purple,
+          color: Colors.black,
           width: 5,
           style: row == numberOfStickyRows - 1 ? BorderStyle.solid : BorderStyle.none,
         ),
@@ -214,13 +214,13 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   }
 
   @override
-  int get numberOfColumns => 3;
+  int get numberOfColumns => 20;
 
   @override
-  int get numberOfRows => 1;
+  int get numberOfRows => 10000;
 
   @override
-  int get numberOfStickyRows => 1;
+  int get numberOfStickyRows => 2;
 
   @override
   int get numberOfStickyColumns => 1;
