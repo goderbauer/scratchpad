@@ -10,7 +10,10 @@ class RawTableBandDecoration {
 
   void paint(Canvas canvas, Rect rowRect, Axis axis) {
     if (color != null) {
-      canvas.drawRect(rowRect, Paint()..color = color!);
+      canvas.drawRect(rowRect, Paint()
+        ..color = color!
+        ..isAntiAlias = false,
+      );
     }
     if (border != null) {
       border!.paint(canvas, rowRect, axis);

@@ -79,10 +79,10 @@ class CombiningRawTableBandExtent extends RawTableBandExtent {
   double calculateExtent(RawTableBandExtentDelegate delegate) => combiner(spec1.calculateExtent(delegate), spec2.calculateExtent(delegate));
 }
 
-class MaxTableDimensionSpec extends CombiningRawTableBandExtent {
-  const MaxTableDimensionSpec(RawTableBandExtent spec1, RawTableBandExtent spec2) : super(spec1, spec2, math.max);
+class MaxRawTableBandExtent extends CombiningRawTableBandExtent {
+  const MaxRawTableBandExtent(RawTableBandExtent spec1, RawTableBandExtent spec2) : super(spec1, spec2, math.max);
 }
 
-class MinTableDimensionSpec extends CombiningRawTableBandExtent {
-  const MinTableDimensionSpec(RawTableBandExtent spec1, RawTableBandExtent spec2) : super(spec1, spec2, math.min);
+class MinRawTableBandExtent extends CombiningRawTableBandExtent {
+  const MinRawTableBandExtent(RawTableBandExtent spec1, RawTableBandExtent spec2) : super(spec1, spec2, math.min);
 }

@@ -421,6 +421,7 @@ class _RenderRawTableViewport extends RenderBox {
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    // TODO: need to double check that sticky rows are hit testing before regular rows.
     for (final RenderBox child in _children.values) {
       final _RawTableViewportParentData parentData = _parentDataOf(child);
       final Rect childRect = parentData.offset & child.size;
