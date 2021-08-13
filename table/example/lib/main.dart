@@ -1,9 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:table/band.dart';
-import 'package:table/band_decoration.dart';
-import 'package:table/table.dart';
+import 'package:table/raw.dart';
+
+// ignore_for_file: public_member_api_docs
 
 void main() {
   runApp(const TableExampleApp());
@@ -45,16 +45,12 @@ class _TableExampleState extends State<TableExample> {
       ),
       body: Container(
         padding: const EdgeInsets.symmetric(horizontal: 50),
-        child: RawTableScrollView(
+        child: RawTableView(
           delegate: delegate,
           verticalController: controller,
         ),
       ),
       persistentFooterButtons: <Widget>[
-        TextButton(
-          onPressed: delegate.switchKeyedChild,
-          child: const Text('switch keyed child'),
-        ),
         TextButton(
           onPressed: () {
             controller.jumpTo((controller.offset + 2000) % controller.position.maxScrollExtent);
@@ -78,29 +74,11 @@ class _TableExampleState extends State<TableExample> {
 }
 
 class ExampleRawTableDelegate extends RawTableDelegate {
-  int keyedChildRow = 0;
-  int keyedChildColumn = 0;
-
-  void switchKeyedChild() {
-    keyedChildRow = keyedChildRow == 0 ? 1 : 0;
-    keyedChildColumn = keyedChildColumn == 0 ? 1 : 0;
-    notifyListeners();
-  }
 
   @override
   Widget buildCell(BuildContext context, int column, int row) {
-    // if (column == keyedChildColumn && row == keyedChildRow) {
-    //   return Container(
-    //     key: const ValueKey<String>('counter'),
-    //     color: Colors.pink,
-    //     child: CounterCell(column: column, row: row),
-    //   );
-    // }
     return Padding(
       padding: EdgeInsets.only(right: column == numberOfStickyColumns - 1 ? 5 : 0, bottom: row == numberOfStickyRows - 1 ? 5 : 0),
-      // color: row.isEven
-      //     ? (column.isEven ? Colors.red : Colors.yellow)
-      //     : (column.isEven ? Colors.blue : Colors.green),
       child: Center(child: Text('Tile c: $column, r: $row, v: ${_rows[row]}')),
     );
   }
@@ -228,7 +206,7 @@ class ExampleRawTableDelegate extends RawTableDelegate {
   @override
   int get numberOfColumns => 20;
 
-  List<int> _rows = List<int>.generate(10, (int index) => index);
+  List<int> _rows = List<int>.generate(100, (int index) => index);
 
   @override
   int get numberOfRows => _rows.length;

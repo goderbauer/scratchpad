@@ -6,41 +6,67 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:table/band_decoration.dart';
 
 import 'band.dart';
+import 'band_decoration.dart';
 import 'fake_viewport.dart';
 
-class RawTableScrollView extends StatefulWidget {
-  const RawTableScrollView({
+/// A widget that displays a table, which can scroll in horizontal and vertical
+/// direction.
+///
+/// A table consists of rows and columns. Rows fill the vertical space of
+/// the table, while columns fill it vertically. If there is not enough space
+/// available to display all the rows at the same time, the table will scroll
+/// vertically. If there is not enough space for all the columns, it will
+/// scroll horizontally.
+///
+/// The content displayed by the table is organized in cells. Each cell belongs
+/// to exactly one row and one column. The table supports lazy rendering and
+/// will only instantiate those cells, that are currently visible in the
+/// table's viewport.
+///
+/// The layout of the table (e.g. how many rows/columns there are and their
+/// extents) as well as the content of the individual cells is defined by
+/// the provided [delegate].
+///
+// TODO(goderbauer): Document hit testing and paint order.
+///
+/// See also:
+///
+///  * [RawTableViewDelegate], which controls the layout and content of the
+///    table.
+class RawTableView extends StatelessWidget {
+  /// Creates a [RawTableView].
+  ///
+  /// A non-null [delegate] must be provided.
+  const RawTableView({
     Key? key,
     this.horizontalController,
     this.verticalController,
     required this.delegate,
+    // TODO(goderbauer): pipe through the other arguments of the two scrollables.
   }) : super(key: key);
 
+  /// The [ScrollController] for the horizontally scrolling [Scrollable].
   final ScrollController? horizontalController;
+
+  /// The [ScrollController] for the vertically scrolling [Scrollable].
   final ScrollController? verticalController;
 
+  /// The [RawTableDelegate] that defines the layout and content of the table.
   final RawTableDelegate delegate;
 
   @override
-  State<RawTableScrollView> createState() => _RawTableScrollViewState();
-}
-
-class _RawTableScrollViewState extends State<RawTableScrollView> {
-  // TODO: Allow passing in a TableScrollController(). (This is obviously not safe)
-  late final ScrollController horizontalController = widget.horizontalController ?? ScrollController();
-  late final ScrollController verticalController = widget.verticalController ?? ScrollController();
-
-  @override
   Widget build(BuildContext context) {
-    // TODO: deal with panning
+    // TODO(goderbauer): Figure out how to do diagonal scrolling (e.g. on touch screens).
     return Scrollable(
       controller: horizontalController,
-      axisDirection: AxisDirection.right, // TODO: make these configurable
+      axisDirection: AxisDirection.right, // TODO(goderbauer): Allow configuration.
       viewportBuilder: (BuildContext context, ViewportOffset horizontalOffset) {
-        return FakeViewport( // This is only here to increase depth of ScrollNotification
+        // The FakeViewport increases the depth of the ScrollNotifications issued by
+        // the Scrollable below to differentiate them from the notifications issued
+        // by the Scrollable above.
+        return FakeViewport(
           child: Scrollable(
             controller: verticalController,
             axisDirection: AxisDirection.down,
@@ -48,7 +74,7 @@ class _RawTableScrollViewState extends State<RawTableScrollView> {
               return _RawTableViewport(
                 horizontalOffset: horizontalOffset,
                 verticalOffset: verticalOffset,
-                delegate: widget.delegate,
+                delegate: delegate,
               );
             },
           ),
@@ -58,7 +84,7 @@ class _RawTableScrollViewState extends State<RawTableScrollView> {
   }
 }
 
-// TODO: Implement viewport interface.
+// TODO(goderbauer): Implement RenderAbstractViewport interface.
 class _RawTableViewport extends RenderObjectWidget {
   const _RawTableViewport({
     Key? key,
@@ -113,27 +139,7 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
 
   // ---- Updating children ----
 
-  // @override
-  // void mount(Element? parent, Object? newSlot) {
-  //   // Create the initial list of element children from widget children by calling updateChild.
-  //   // We don't have any pre-determined widget children, so nothing to do here.
-  //   super.mount(parent, newSlot);
-  // }
-
-  // @override
-  // void update(_RawTableViewport newWidget) {
-  //   // Rebuild if the delegate requires it. (Rebuild will delegate to layout).
-  //   final _RawTableViewport oldWidget = widget;
-  //   super.update(newWidget);
-  //   final RawTableDelegate newDelegate = newWidget.delegate;
-  //   final RawTableDelegate oldDelegate = oldWidget.delegate;
-  //   if (newDelegate != oldDelegate && (newDelegate.runtimeType != oldDelegate.runtimeType || newDelegate.shouldRebuild(oldDelegate))) {
-  //     rebuild(); // ultimately runs performRebuild()
-  //     // renderObject.markNeedsLayoutWithRebuild(); // rebuild(); // TODO: or performRebuild? or remove performRebuild impl alltogether and just mark renderobject?
-  //   }
-  // }
-
-  // TODO: check inheritedwidgets.
+  // TODO(goderbauer): Will InheritedWidgets in a cell cause the entire table to rebuild? Any way to avoid that?
   @override
   void performRebuild() {
     super.performRebuild();
@@ -141,13 +147,6 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
     // which children will be visible.
     renderObject.markNeedsLayout(withCellRebuild: true, withSpecRebuild: true);
   }
-
-  // @override
-  // void reassemble() {
-  //   super.reassemble();
-  //   // Makes buildCell in delegate hot-reloadable.
-  //   renderObject.markNeedsLayoutWithRebuild();
-  // }
 
   // ---- Detaching children ----
 
@@ -222,10 +221,6 @@ class _RawTableViewportElement extends RenderObjectElement implements _CellManag
       if (newWidget.key != null) {
         _newKeyToChild![newWidget.key!] = newChild;
       }
-
-      // oldElement == null && newWidget != null -> insertRenderObject
-      // oldElement != null && newWidget == null -> removeRenderObject
-      // oldElement != null && newWidget != null -> if update possible: moveRenderObject, else removeRenderObject & insertRenderObject
     });
   }
 
@@ -421,12 +416,11 @@ class _RenderRawTableViewport extends RenderBox {
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    // TODO: need to double check that sticky rows are hit testing before regular rows.
     for (final RenderBox child in _children.values) {
       final _RawTableViewportParentData parentData = _parentDataOf(child);
       final Rect childRect = parentData.offset & child.size;
       if (childRect.contains(position)) {
-        // TODO: Do something with return value? Only add Row/Column if child is hit?
+        // TODO(goderbauer): Do something with return value? Only add Row/Column if child is hit?
         result.addWithPaintOffset(
           offset: parentData.offset,
           position: position,
@@ -435,7 +429,7 @@ class _RenderRawTableViewport extends RenderBox {
             return child.hitTest(result, position: transformed);
           },
         );
-        // TODO: make it configurable in which order row/columns are hit?
+        // TODO(goderbauer): make it configurable in which order row/columns are hit?
         result.add(HitTestEntry(_rowMetrics[parentData.index.row]!));
         result.add(HitTestEntry(_columnMetrics[parentData.index.column]!));
         return true;
@@ -494,6 +488,7 @@ class _RenderRawTableViewport extends RenderBox {
     final Map<int, _Band> newColumnMetrics = <int, _Band>{};
     for (int column = 0; column < delegate.numberOfColumns; column++) {
       final bool isSticky = column < delegate.numberOfStickyColumns;
+      final double start = isSticky ? startOfStickyColumn : startOfColumn;
       _Band? band = _columnMetrics.remove(column);
       assert(_needsSpecRebuild || band != null);
       final RawTableBand bandSpec = _needsSpecRebuild ? delegate.buildColumnSpec(column) : band!.spec;
@@ -501,24 +496,24 @@ class _RenderRawTableViewport extends RenderBox {
       band.update(
         isSticky: isSticky,
         spec: bandSpec,
-        start: isSticky ? startOfStickyColumn : startOfColumn,
+        start: start,
         extent: bandSpec.extent.calculateExtent(RawTableBandExtentDelegate(
           viewportExtent: size.width,
-          precedingExtent: isSticky ? startOfStickyColumn : startOfColumn,
+          precedingExtent: start,
         )),
       );
       newColumnMetrics[column] = band;
       if (!isSticky) {
-        final double endOfColumn = startOfColumn + band.extent;
+        final double endOfColumn = start + band.extent;
         if (endOfColumn >= horizontalOffset.pixels && _firstVisibleColumn == null) {
           _firstVisibleColumn = column;
         }
         if (endOfColumn >= horizontalOffset.pixels + size.width - startOfStickyColumn && _lastVisibleColumn == null) {
           _lastVisibleColumn = column;
         }
-        startOfColumn = endOfColumn;
+        startOfColumn = start;
       } else {
-        startOfStickyColumn = startOfStickyColumn + band.extent;
+        startOfStickyColumn = start + band.extent;
       }
     }
     assert(newColumnMetrics.length >= delegate.numberOfStickyColumns);
@@ -534,6 +529,7 @@ class _RenderRawTableViewport extends RenderBox {
     final Map<int, _Band> newRowMetrics = <int, _Band>{};
     for (int row = 0; row < delegate.numberOfRows; row++) {
       final bool isSticky = row < delegate.numberOfStickyRows;
+      final double start =  isSticky ? startOfStickyRow : startOfRow;
       _Band? band = _rowMetrics.remove(row);
       assert(_needsSpecRebuild || band != null);
       final RawTableBand bandSpec = _needsSpecRebuild ? delegate.buildRowSpec(row) : band!.spec;
@@ -541,24 +537,24 @@ class _RenderRawTableViewport extends RenderBox {
       band.update(
         isSticky: isSticky,
         spec: bandSpec,
-        start: isSticky ? startOfStickyRow : startOfRow,
+        start: start,
         extent: bandSpec.extent.calculateExtent(RawTableBandExtentDelegate(
           viewportExtent: size.height,
-          precedingExtent: isSticky ? startOfStickyRow : startOfRow,
+          precedingExtent: start,
         )),
       );
       newRowMetrics[row] = band;
       if (!isSticky) {
-        final double endOfRow = startOfRow + band.extent;
+        final double endOfRow = start + band.extent;
         if (endOfRow >= verticalOffset.pixels && _firstVisibleRow == null) {
           _firstVisibleRow = row;
         }
         if (endOfRow >= verticalOffset.pixels + size.height - startOfStickyRow && _lastVisibleRow == null) {
           _lastVisibleRow = row;
         }
-        startOfRow = endOfRow;
+        startOfRow = start;
       } else {
-        startOfStickyRow = startOfStickyRow + band.extent;
+        startOfStickyRow = start + band.extent;
       }
     }
     assert(newRowMetrics.length >= delegate.numberOfStickyRows);
@@ -768,8 +764,7 @@ class _RenderRawTableViewport extends RenderBox {
       assert(_children.isEmpty);
       return;
     }
-    // TODO: Only if we actually have overflow and clipping is enabled.
-    // TODO: make type of clipping configurable.
+    // TODO(goderbauer): make type of clipping configurable.
     if (_firstVisibleCell != null) {
       assert(_lastVisibleCell != null);
       _clipCellsHandle.layer = context.pushClipRect(
@@ -903,7 +898,7 @@ class _RenderRawTableViewport extends RenderBox {
   void markNeedsLayout({bool withCellRebuild = false, bool withSpecRebuild = false}) {
     _needsCellRebuild = _needsCellRebuild || withCellRebuild;
     _needsSpecRebuild = _needsSpecRebuild || withSpecRebuild;
-    // TODO: set _needsDimensionUpdate if we depend on size of children.
+    // TODO(goderbauer): set _needsDimensionUpdate if we depend on size of children (e.g. after implementing prototype-based sizing).
     super.markNeedsLayout();
   }
 
@@ -931,7 +926,6 @@ class _RenderRawTableViewport extends RenderBox {
     dropChild(child);
   }
 
-
   List<RenderBox>? _debugOrphans;
 
   // When a child is inserted into a slot currently occupied by another child,
@@ -951,23 +945,140 @@ class _RenderRawTableViewport extends RenderBox {
   }
 }
 
-// TODO: Do we need more fine-grained control instead of just a blanked notifyListeners that rebuilds everything?
+/// Controls the layout and content of a [RawTableView].
+///
+/// The delegate specifies the [numberOfColumns] and [numberOfRows] that the
+/// table will have. Furthermore, the extent and some visual properties of
+/// a row or column are defined by the [RawTableBand] specifications returned
+/// by the [buildColumnSpec] and [buildRowSpec] builders for a given column
+/// or row index.
+///
+/// The content of the individual cells is defined by the [buildCell] builder.
+/// The table will only call the builder for cells that are visible in the
+/// table's viewport ('lazy rendering').
+///
+/// Whenever the values returned by any of the getters or builders on this
+/// delegate change, [notifyListeners] must be called. This signals to the
+/// [RawTableView] that the getters and builders need to be re-queried to update
+/// the visual representation of the table.
+// TODO(goderbauer): Do we need more fine-grained control instead of just a blanked notifyListeners that rebuilds everything?
 // Maybe `requestRebuild` for changes to buildCell/buildPrototype.
 //   `requestLayout` for size changes, `request paint` for visuals.
 abstract class RawTableDelegate extends ChangeNotifier {
-  Widget buildCell(BuildContext context, int column, int row);
-
-  // TODO: Allow tables with unknown column.row count, i.e. numberOfColumns or numberOfRows is null.
+  // TODO(goderbauer): Allow tables with unknown column/row count, i.e. numberOfColumns or numberOfRows is null.
   //   Also: buildColumnSpec/buildRowSpec may then return null to indicate the end.
+
+  /// The number of columns that the table has content for.
+  ///
+  /// The [buildColumnSpec] builder will be called for indices smaller than the
+  /// value provided here to learn more about the extent and visual appearance
+  /// of a particular column.
+  ///
+  /// The value returned by this getter may be an estimate of the total
+  /// available columns, but [buildColumnSpec] must provide a valid
+  /// [RawTableBand] for all indices smaller than this integer.
+  ///
+  /// The integer returned by this getter must be larger than (or equal to) the
+  /// integer returned by [numberOfStickyColumns].
+  ///
+  /// If the value returned by this getter changes throughout the lifetime of
+  /// the delegate object, [notifyListeners] must be called.
   int get numberOfColumns;
+
+  /// The number of rows that the table has content for.
+  ///
+  /// The [buildRowSpec] builder will be called for indices smaller than the
+  /// value provided here to learn more about the extent and visual appearance
+  /// of a particular row.
+  ///
+  /// The value returned by this getter may be an estimate of the total
+  /// available rows, but [buildRowSpec] must provide a valid
+  /// [RawTableBand] for all indices smaller than this integer.
+  ///
+  /// The integer returned by this getter must be larger than (or equal to) the
+  /// integer returned by [numberOfStickyRows].
+  ///
+  /// If the value returned by this getter changes throughout the lifetime of
+  /// the delegate object, [notifyListeners] must be called.
   int get numberOfRows;
 
-  int get numberOfStickyRows => 0;
+  // TODO(goderbauer): Support other sticky configurations.
+
+  /// The number of columns that are permanently shown on the left side of
+  /// the viewport.
+  ///
+  /// If scrolling is enabled, other columns will scroll underneath the sticky
+  /// columns.
+  ///
+  /// Just like for regular columns, [buildColumnSpec] will be consulted for
+  /// additional information about the sticky column. The indices of sticky columns
+  /// start at zero and go to `numberOfStickyColumns - 1`.
+  ///
+  /// The integer returned by this getter must be smaller than (or equal to) the
+  /// integer returned by [numberOfColumns].
+  ///
+  /// If the value returned by this getter changes throughout the lifetime of
+  /// the delegate object, [notifyListeners] must be called.
   int get numberOfStickyColumns => 0;
 
+  /// The number of rows that are permanently shown on the top side of
+  /// the viewport.
+  ///
+  /// If scrolling is enabled, other rows will scroll underneath the sticky
+  /// rows.
+  ///
+  /// Just like for regular rows, [buildRowSpec] will be consulted for
+  /// additional information about the sticky row. The indices of sticky rows
+  /// start at zero and go to `numberOfStickyRows - 1`.
+  ///
+  /// The integer returned by this getter must be smaller than (or equal to) the
+  /// integer returned by [numberOfRows].
+  ///
+  /// If the value returned by this getter changes throughout the lifetime of
+  /// the delegate object, [notifyListeners] must be called.
+  int get numberOfStickyRows => 0;
+
+  /// Builds the [RawTableBand] that describe the column at the provided index.
+  ///
+  /// The builder must return a valid [RawTableBand] for all indices smaller than
+  /// [numberOfColumns].
+  ///
+  /// If the value returned by this builder for a particular index changes
+  /// throughout the lifetime of the delegate object, [notifyListeners] must be
+  /// called.
   RawTableBand buildColumnSpec(int column);
+
+  /// Builds the [RawTableBand] that describe the row at the provided index.
+  ///
+  /// The builder must return a valid [RawTableBand] for all indices smaller than
+  /// [numberOfRows].
+  ///
+  /// If the value returned by this builder for a particular index changes
+  /// throughout the lifetime of the delegate object, [notifyListeners] must be
+  /// called.
   RawTableBand buildRowSpec(int row);
 
+  /// Builds the widget for the cell at the provided `column` and `row` index.
+  ///
+  /// The builder is only invoked for cells that are actually visible in the
+  /// table's viewport ('lazy rendering').
+  ///
+  /// The `column` indices provided to this builder will be between 0 and
+  /// [numberOfColumns]. The `row` indices will be between 0 and `numberOfRows`.
+  ///
+  /// If the value returned by this builder for a particular row and column
+  /// index changes throughout the lifetime of the delegate object,
+  /// [notifyListeners] must be called.
+  Widget buildCell(BuildContext context, int column, int row);
+
+  /// Called whenever a new instance of the [RawTableDelegate] class is provided
+  /// to the [RawTableView].
+  ///
+  /// If the new instance represents different information than the old instance,
+  /// then the method should return true, otherwise it should return false.
+  ///
+  /// If the method returns false, then additional calls to the builders and
+  /// getters of this delegate may be optimized away.
   bool shouldRebuild(RawTableDelegate oldDelegate);
 }
 
