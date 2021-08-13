@@ -511,7 +511,7 @@ class _RenderRawTableViewport extends RenderBox {
         if (endOfColumn >= horizontalOffset.pixels + size.width - startOfStickyColumn && _lastVisibleColumn == null) {
           _lastVisibleColumn = column;
         }
-        startOfColumn = start;
+        startOfColumn = endOfColumn;
       } else {
         startOfStickyColumn = start + band.extent;
       }
@@ -552,7 +552,7 @@ class _RenderRawTableViewport extends RenderBox {
         if (endOfRow >= verticalOffset.pixels + size.height - startOfStickyRow && _lastVisibleRow == null) {
           _lastVisibleRow = row;
         }
-        startOfRow = start;
+        startOfRow = endOfRow;
       } else {
         startOfStickyRow = start + band.extent;
       }
