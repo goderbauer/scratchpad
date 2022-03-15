@@ -1,9 +1,10 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:image/image.dart' as image;
 import 'package:loading_indicator/loading_indicator.dart';
@@ -18,6 +19,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Image Processing Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -40,14 +42,29 @@ class _MyHomePageState extends State<MyHomePage> {
   Uint8List? _image;
   Uint8List? _originalImage;
 
-  @override
-  void initState() {
-    super.initState();
-    rootBundle.load('assets/tulips.jpg').then((ByteData data) {
-      setState(() {
-        _originalImage = data.buffer.asUint8List();
-        _image = _originalImage;
-      });
+  void _loadImageSync(String path) {
+    setState(() {
+      _loading = true;
+    });
+    Uint8List data = File(path).readAsBytesSync();
+    setState(() {
+      // For the demo, remove the "reset" functionality and just set _image here.
+      _originalImage = data;
+      _image = _originalImage;
+      _loading = false;
+    });
+  }
+
+  Future<void> _loadImageAsync(String path) async {
+    setState(() {
+      _loading = true;
+    });
+    Uint8List data = await File(path).readAsBytes();
+    setState(() {
+      // For the demo, remove the "reset" functionality and just set _image here.
+      _originalImage = data;
+      _image = _originalImage;
+      _loading = false;
     });
   }
 
@@ -93,9 +110,28 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _showImagePicker({@required sync}) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+    if (result == null) {
+      return;
+    }
+    if (sync) {
+      _loadImageSync(result.files.single.path!);
+    } else {
+      _loadImageAsync(result.files.single.path!);
+    }
+  }
+
   void _reset() {
     setState(() {
       _image = _originalImage;
+    });
+  }
+
+  void _clear() {
+    setState(() {
+      _image = null;
+      _originalImage = null;
     });
   }
 
@@ -109,11 +145,10 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           if (_image != null)
             Center(
-              child: Image.memory(
-                _image!,
-                gaplessPlayback: true,
-              ),
-            ),
+                child: Image.memory(
+              _image!,
+              gaplessPlayback: true,
+            )),
           Positioned.fill(
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 250),
@@ -137,30 +172,59 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
           ),
+          if (_image == null && !_loading)
+            Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      _showImagePicker(sync: true);
+                    },
+                    child: const Text('Load (sync)'),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    onPressed: () {
+                      _showImagePicker(sync: false);
+                    },
+                    child: const Text('Load (async)'),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
       persistentFooterButtons: <Widget>[
         TextButton(
-          onPressed: _image == _originalImage && !_loading
+          onPressed: _image == _originalImage && !_loading && _image != null
               ? _applySepiaFilterSync
               : null,
           child: const Text('Sepia (sync)'),
         ),
         TextButton(
-          onPressed: _image == _originalImage && !_loading
+          onPressed: _image == _originalImage && !_loading && _image != null
               ? _applySepiaFilterAsync
               : null,
           child: const Text('Sepia (async)'),
         ),
         TextButton(
-          onPressed: _image == _originalImage && !_loading
+          onPressed: _image == _originalImage && !_loading && _image != null
               ? _applySepiaFilterInIsolate
               : null,
           child: const Text('Sepia (isolate)'),
         ),
         TextButton(
-          onPressed: _image != _originalImage && !_loading ? _reset : null,
-          child: const Text('Reset'),
+          onPressed: _image != _originalImage && !_loading && _image != null
+              ? _reset
+              : null,
+          child: const Text('Reset to Original'),
+        ),
+        TextButton(
+          onPressed: _image != null
+              ? _clear
+              : null,
+          child: const Text('Clear'),
         ),
       ],
     );
