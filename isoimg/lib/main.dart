@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
@@ -88,8 +87,6 @@ class _MyHomePageState extends State<MyHomePage> {
       _loading = true;
     });
     final Uint8List encoded = await compute(_applySepiaFilter, _image!);
-    // Alternative with Isolate.run (currently crashes).
-    // final Uint8List encoded = await Isolate.run(() => _applySepiaFilter(_image!));
     setState(() {
       _image = encoded;
       _loading = false;
