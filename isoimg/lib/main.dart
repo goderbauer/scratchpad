@@ -1,11 +1,12 @@
 import 'dart:async';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:image/image.dart' as image;
-import 'package:http/http.dart' as http;
 import 'package:loading_indicator/loading_indicator.dart';
 
 void main() {
@@ -22,15 +23,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Image Processing Demo'),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
-
-  final String title;
+  const MyHomePage({Key? key}) : super(key: key);
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -45,25 +44,10 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    http.get(Uri.parse('https://picsum.photos/id/428/2529/1581')).then(
-          (http.Response response) => setState(() {
-            _originalImage = response.bodyBytes;
-            _image = _originalImage;
-          }),
-        );
-  }
-
-  void _applySepiaFilterSync() {
-    setState(() {
-      _loading = true;
-    });
-    // Hack to render the loading indicator before the actual computation
-    // blocks the main thread.
-    Future.delayed(const Duration(milliseconds: 500), () {
-      final Uint8List filtered = _applySepiaFilter(_image!);
+    rootBundle.load('assets/tulips.jpg').then((ByteData data) {
       setState(() {
-        _image = filtered;
-        _loading = false;
+        _originalImage = data.buffer.asUint8List();
+        _image = _originalImage;
       });
     });
   }
@@ -75,12 +59,37 @@ class _MyHomePageState extends State<MyHomePage> {
     return encoded;
   }
 
-  Future<void> _applySepiaFilterAsync() async {
+  void _applySepiaFilterSync() {
     setState(() {
       _loading = true;
     });
-    final Uint8List encoded =
-        await compute<Uint8List, Uint8List>(_applySepiaFilter, _image!);
+    final Uint8List filtered = _applySepiaFilter(_image!);
+    setState(() {
+      _image = filtered;
+      _loading = false;
+    });
+  }
+
+  void _applySepiaFilterAsync() {
+    setState(() {
+      _loading = true;
+    });
+    Future.delayed(const Duration(milliseconds: 500), () {
+      final Uint8List filtered = _applySepiaFilter(_image!);
+      setState(() {
+        _image = filtered;
+        _loading = false;
+      });
+    });
+  }
+
+  Future<void> _applySepiaFilterInIsolate() async {
+    setState(() {
+      _loading = true;
+    });
+    final Uint8List encoded = await compute(_applySepiaFilter, _image!);
+    // Alternative with Isolate.run (currently crashes).
+    // final Uint8List encoded = await Isolate.run(() => _applySepiaFilter(_image!));
     setState(() {
       _image = encoded;
       _loading = false;
@@ -97,7 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        title: const Text('Image Processing Demo'),
       ),
       body: Stack(
         children: [
@@ -145,6 +154,12 @@ class _MyHomePageState extends State<MyHomePage> {
               ? _applySepiaFilterAsync
               : null,
           child: const Text('Sepia (async)'),
+        ),
+        TextButton(
+          onPressed: _image == _originalImage && !_loading
+              ? _applySepiaFilterInIsolate
+              : null,
+          child: const Text('Sepia (isolate)'),
         ),
         TextButton(
           onPressed: _image != _originalImage && !_loading ? _reset : null,
