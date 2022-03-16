@@ -52,7 +52,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     });
   }
 
-  void _showImagePicker({@required sync}) async {
+  void _showImagePicker() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
     _loadImage(result?.files.single.path);
   }
@@ -88,9 +88,7 @@ class _HomeWidgetState extends State<HomeWidget> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ElevatedButton(
-                    onPressed: () {
-                      _showImagePicker(sync: true);
-                    },
+                    onPressed: _showImagePicker,
                     child: const Text('Load'),
                   ),
                 ],
@@ -104,11 +102,11 @@ class _HomeWidgetState extends State<HomeWidget> {
           child: const Text('Sepia'),
         ),
         TextButton(
-          onPressed: _image != null ? _undo : null,
+          onPressed: !_loading && _image != _originalImage ? _undo : null,
           child: const Text('Undo'),
         ),
         TextButton(
-          onPressed: _image != null ? _clear : null,
+          onPressed: !_loading && _image != null ? _clear : null,
           child: const Text('Clear'),
         ),
       ],
