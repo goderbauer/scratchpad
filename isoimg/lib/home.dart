@@ -93,7 +93,7 @@ class _HomeWidgetState extends State<HomeWidget> {
       persistentFooterButtons: <Widget>[
         TextButton(
           onPressed: !_loading && _image != null ? _applySepia : null,
-          child: const Text('Sepia (sync)'),
+          child: const Text('Sepia'),
         ),
         TextButton(
           onPressed: _image != null ? _clear : null,
