@@ -19,6 +19,7 @@ class HomeWidget extends StatefulWidget {
 class _HomeWidgetState extends State<HomeWidget> {
   bool _loading = false;
   Uint8List? _image;
+  Uint8List? _originalImage;
 
   void _loadImageSync(String? path) {
     if (path == null) return;
@@ -29,6 +30,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     final image = File(path).readAsBytesSync();
     setState(() {
       _image = image;
+      _originalImage = image;
       _loading = false;
     });
   }
@@ -42,6 +44,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     final image = await File(path).readAsBytes();
     setState(() {
       _image = image;
+      _originalImage = image;
       _loading = false;
     });
   }
@@ -64,20 +67,19 @@ class _HomeWidgetState extends State<HomeWidget> {
     });
   }
 
-  void _applySepiaAsync() {
+  void _applySepiaAsync() async {
     setState(() {
       _loading = true;
     });
+    await Future.delayed(const Duration(seconds: 1));
     final image = _applySepiaFilter(_image!);
-    Future.delayed(const Duration(milliseconds: 500), () {
-      setState(() {
-        _image = image;
-        _loading = false;
-      });
+    setState(() {
+      _image = image;
+      _loading = false;
     });
   }
 
-  Future<void> _applySepiaInIsolate() async {
+  void _applySepiaInIsolate() async {
     setState(() {
       _loading = true;
     });
@@ -95,6 +97,12 @@ class _HomeWidgetState extends State<HomeWidget> {
     } else {
       _loadImageAsync(result?.files.single.path);
     }
+  }
+
+  void _undo() {
+    setState(() {
+      _image = _originalImage;
+    });
   }
 
   void _clear() {
@@ -153,7 +161,11 @@ class _HomeWidgetState extends State<HomeWidget> {
           child: const Text('Sepia (isolate)'),
         ),
         TextButton(
-          onPressed: _image != null ? _clear : null,
+          onPressed: !_loading && _image != null ? _undo : null,
+          child: const Text('Undo'),
+        ),
+        TextButton(
+          onPressed: !_loading && _image != null ? _clear : null,
           child: const Text('Clear'),
         ),
       ],

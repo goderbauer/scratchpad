@@ -18,6 +18,7 @@ class HomeWidget extends StatefulWidget {
 class _HomeWidgetState extends State<HomeWidget> {
   bool _loading = false;
   Uint8List? _image;
+  Uint8List? _originalImage;
 
   void _loadImage(String? path) {
     if (path == null) return;
@@ -28,6 +29,7 @@ class _HomeWidgetState extends State<HomeWidget> {
     final image = File(path).readAsBytesSync();
     setState(() {
       _image = image;
+      _originalImage = image;
       _loading = false;
     });
   }
@@ -53,6 +55,12 @@ class _HomeWidgetState extends State<HomeWidget> {
   void _showImagePicker({@required sync}) async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
     _loadImage(result?.files.single.path);
+  }
+
+  void _undo() {
+    setState(() {
+      _image = _originalImage;
+    });
   }
 
   void _clear() {
@@ -94,6 +102,10 @@ class _HomeWidgetState extends State<HomeWidget> {
         TextButton(
           onPressed: !_loading && _image != null ? _applySepia : null,
           child: const Text('Sepia'),
+        ),
+        TextButton(
+          onPressed: _image != null ? _undo : null,
+          child: const Text('Undo'),
         ),
         TextButton(
           onPressed: _image != null ? _clear : null,
