@@ -81,22 +81,14 @@ class _HomeWidgetState extends State<HomeWidget> {
             Center(
               child: Image.memory(_image!, gaplessPlayback: true),
             ),
-          ProgressWidget(show: _showProgress),
-          if (_image == null && !_showProgress)
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ElevatedButton(
-                    onPressed: _showImagePicker,
-                    child: const Text('Load'),
-                  ),
-                ],
-              ),
-            ),
+          ProgressWidget(loading: _showProgress),
         ],
       ),
       persistentFooterButtons: <Widget>[
+        TextButton(
+          onPressed: !_showProgress && _image == null ? _showImagePicker : null,
+          child: const Text('Load'),
+        ),
         TextButton(
           onPressed: !_showProgress && _image != null ? _applySepia : null,
           child: const Text('Sepia'),
