@@ -1,7 +1,10 @@
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 
-import 'src/concurrent_game_engine.dart';
+import 'src/dash.dart';
 import 'src/game_engine.dart';
+import 'src/game_board.dart';
+import 'src/lobby.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,203 +17,103 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Dish Dash Doe',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const GameArea(),
+      home: const TicTacToe(),
     );
   }
 }
 
-class GameArea extends StatefulWidget {
-  const GameArea({Key? key}) : super(key: key);
+class TicTacToe extends StatefulWidget {
+  const TicTacToe({Key? key}) : super(key: key);
 
   @override
-  State<GameArea> createState() => _GameAreaState();
+  State<TicTacToe> createState() => _TicTacToeState();
 }
 
-class _GameAreaState extends State<GameArea> {
+class _TicTacToeState extends State<TicTacToe> {
   GameEngine? _engine;
+  UiState? _uiState;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Can you beat Dash in Tic Tac Toe?'),
-        actions: [
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _engine = null;
-              });
-            },
-            icon: const Icon(Icons.restart_alt),
-          ),
-        ],
-      ),
-      body: Row(
-        children: [
-          const Expanded(child: Avatar(name: 'Michael')),
-          Center(
-            child: _engine == null
-                ? SizedBox(
-                    width: 150,
-                    height: 150,
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ElevatedButton(
-                            child: const Text('Sync Engine'),
-                            onPressed: () async {
-                              final GameEngine engine = GameEngine();
-                              await engine.newGame();
-                              setState(() {
-                                _engine = engine;
-                              });
-                            },
-                          ),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            child: const Text('Isolate Engine'),
-                            onPressed: () async {
-                              final GameEngine engine = ConcurrentGameEngine();
-                              await engine.newGame();
-                              setState(() {
-                                _engine = engine;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ))
-                : SquareField(engine: _engine!),
-          ),
-          const Expanded(child: Avatar(name: 'Dash')),
-        ],
-      ),
-    );
-  }
-}
+  final ConfettiController _controller = ConfettiController(
+    duration: const Duration(seconds: 10),
+  );
 
-class Avatar extends StatelessWidget {
-  const Avatar({Key? key, required this.name}) : super(key: key);
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const CircularProgressIndicator(),
-        Text(name),
-      ],
-    );
-  }
-}
-
-class SquareField extends StatefulWidget {
-  const SquareField({Key? key, required this.engine}) : super(key: key);
-
-  final GameEngine engine;
-
-  @override
-  State<SquareField> createState() => _SquareFieldState();
-}
-
-class _SquareFieldState extends State<SquareField> {
-  @override
-  void initState() {
-    super.initState();
-    widget.engine.addListener(_update);
-  }
-
-  @override
-  void didUpdateWidget(SquareField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.engine != widget.engine) {
-      oldWidget.engine.removeListener(_update);
-      widget.engine.addListener(_update);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.engine.removeListener(_update);
-    super.dispose();
-  }
-
-  void _update() {
+  Future<void> _startGame(GameEngine engine) async {
     setState(() {
-      // state in the engine has changed.
+      _engine = engine;
+    });
+    final UiState state = await _engine!.start();
+    setState(() {
+      _uiState = state;
     });
   }
 
-  Widget? _markingForSquare(int col, int row) {
-    switch (widget.engine.uiState.markingForSquare(col, row)) {
-      case Player.dash:
-        return const Text('D');
-      case Player.human:
-        return const Text('H');
-      case null:
-        return null;
+  Future<void> _reportMove(int row, int col) async {
+    UiState state = await _engine!.reportMove(row, col);
+    setState(() {
+      _uiState = state;
+    });
+    if (!state.gameOver) {
+      // Ask Dash to make the next move.
+      state = await _engine!.makeMove();
+      setState(() {
+        _uiState = state;
+      });
+    } else if (state.winner == Player.human) {
+      _controller.play();
     }
   }
 
-  bool _squareActive(int col, int row) {
-    return widget.engine.uiState.currentTurn == Player.human &&
-        widget.engine.uiState.markingForSquare(col, row) == null;
-  }
-
-  String _winnerText(Player? winner) {
-    switch (winner) {
-      case Player.dash:
-        return 'Game Over! Dash won!';
-      case Player.human:
-        return 'Congratulations! You won!';
-      case null:
-        return "It's a tie!";
-    }
+  void _reset() {
+    setState(() {
+      _engine?.dispose();
+      _engine = null;
+      _uiState = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (int row = 0; row < 3; row++)
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (int col = 0; col < 3; col++)
-                InkWell(
-                  onTap: _squareActive(row, col)
-                      ? () {
-                          widget.engine.mark(row, col);
-                        }
-                      : null,
-                  child: Container(
-                    height: 50,
-                    width: 50,
-                    color: Colors.grey,
-                    child: Center(
-                      child: _markingForSquare(row, col),
-                    ),
-                  ),
-                )
-            ],
-          ),
-        if (widget.engine.uiState.gameOver)
-          Text(_winnerText(widget.engine.uiState.winner))
-        else
-          Text(
-            widget.engine.uiState.currentTurn == Player.human
-                ? 'Your turn!'
-                : 'Dash is thinking...',
-          ),
-      ],
+    return ConfettiWidget(
+      confettiController: _controller,
+      blastDirectionality: BlastDirectionality.explosive,
+      maxBlastForce: 100,
+      emissionFrequency: 0.05,
+      numberOfParticles: 50,
+      gravity: 1,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Dish Dash Doe'),
+          actions: [
+            IconButton(
+              onPressed: _reset,
+              icon: const Icon(Icons.restart_alt),
+            ),
+          ],
+        ),
+        body: Row(
+          children: [
+            SizedBox(
+              width: 340,
+              child: Center(
+                child: _engine == null
+                    ? Lobby(onStartGame: _startGame)
+                    : _uiState != null
+                        ? GameBoard(uiState: _uiState!, onMove: _reportMove)
+                        : const Text('Loading...'),
+              ),
+            ),
+            Expanded(
+              child: Dash(
+                dancing: _engine != null && _uiState?.gameOver != true,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

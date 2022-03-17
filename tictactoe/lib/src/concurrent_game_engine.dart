@@ -1,59 +1,64 @@
 import 'dart:async';
 import 'dart:isolate';
 
-import 'package:flutter/foundation.dart';
+import 'package:async/async.dart';
 
 import 'game_engine.dart';
 
-class ConcurrentGameEngine  extends ChangeNotifier implements GameEngine {
-  @override
-  Future<void> mark(int row, int col) async {
-    (await _sendPort.future).send([row, col]);
-  }
+class ConcurrentGameEngine implements GameEngine {
+  final ReceivePort _receivePort = ReceivePort();
+  late final StreamQueue<Object?> _receiveQueue = StreamQueue<Object?>(
+    _receivePort,
+  );
+  SendPort? _sendPort;
+  Isolate? _isolate;
 
-  ReceivePort? _receivePort;
-  final Completer<SendPort> _sendPort = Completer<SendPort>();
-
   @override
-  Future<void> newGame() async {
-    if (_receivePort == null) {
-      _receivePort = ReceivePort()..listen((Object? message) {
-        if (message is SendPort) {
-          _sendPort.complete(message);
-        } else if (message is UiState) {
-          _uiState = message;
-          notifyListeners();
-        } else {
-          throw Exception('Invalid message from isolate: $message');
-        }
-      });
-      Isolate.spawn(_isolate, _receivePort!.sendPort);
+  Future<UiState> start() async {
+    if (_isolate == null) {
+      _isolate = await Isolate.spawn(_isolateEntryPoint, _receivePort.sendPort);
+      _sendPort = await _receiveQueue.next as SendPort;
     }
-    (await _sendPort.future).send('new');
+    _sendPort!.send('start');
+    return (await _receiveQueue.next) as UiState;
   }
 
   @override
-  UiState get uiState => _uiState!;
-  UiState? _uiState;
+  Future<UiState> reportMove(int row, int col) async {
+    _sendPort!.send([row, col]);
+    return (await _receiveQueue.next) as UiState;
+  }
+
+  @override
+  Future<UiState> makeMove() async {
+    _sendPort!.send('makeMove');
+    return (await _receiveQueue.next) as UiState;
+  }
+
+  @override
+  void dispose() {
+    _isolate?.kill();
+    _isolate = null;
+  }
 }
 
-void _isolate(SendPort sendPort) {
-  final GameEngine engine = GameEngine();
-
+void _isolateEntryPoint(SendPort sendPort) {
   final ReceivePort receivePort = ReceivePort();
   sendPort.send(receivePort.sendPort);
 
-  engine.addListener(() {
-    sendPort.send(engine.uiState);
-  });
+  final GameEngine engine = GameEngine();
 
-  receivePort.listen((Object? message) {
-    if (message == 'new') {
-      engine.newGame();
+  receivePort.listen((Object? message) async {
+    final UiState uiState;
+    if (message == 'start') {
+      uiState = await engine.start();
+    } else if (message == 'makeMove') {
+      uiState = await engine.makeMove();
     } else if (message is List<int> && message.length == 2) {
-      engine.mark(message.first, message.last);
+      uiState = await engine.reportMove(message.first, message.last);
     } else {
-      throw Exception('Invalid message in isolate: $message');
+      throw Exception('Invalid message sent to isolate: $message');
     }
+    sendPort.send(uiState);
   });
 }

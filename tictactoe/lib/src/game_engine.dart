@@ -1,39 +1,70 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
+// Interface
 
-class GameEngine extends ChangeNotifier {
-  UiState get uiState => _uiState;
-  UiState _uiState = UiState._start();
+abstract class GameEngine {
+  factory GameEngine() = _GameEngine;
 
-  Future<void> newGame() async {
-    _uiState = UiState._start();
-    notifyListeners();
+  Future<UiState> start();
+  Future<UiState> reportMove(int row, int col);
+  Future<UiState> makeMove();
+  void dispose();
+}
+
+abstract class UiState {
+  bool get gameOver;
+  Player? get winner;
+  Player? get currentTurn;
+  Player? markAtSquare(int row, int col);
+}
+
+enum Player {
+  dash,
+  human,
+}
+
+// Implementation
+
+class _GameEngine implements GameEngine {
+  _UiState _uiState = _UiState.start();
+
+  @override
+  Future<UiState> start() async {
+    _uiState = _UiState.start();
+    return _uiState;
   }
 
-  Future<void> mark(int row, int col) async {
-    _uiState = _calculateNewState(_toSquareIndex(row, col), Player.human);
-    notifyListeners();
-    // Yield, to give listeners some time to update UI based on new State.
-    await Future.delayed(const Duration(milliseconds: 250));
-    if (!uiState.gameOver) {
-      _calculateDashMove();
-    }
+  @override
+  Future<UiState> reportMove(int row, int col) async {
+    _uiState = _computeNewState(_UiState.toSquareIndex(row, col), Player.human);
+    return _uiState;
   }
 
-  UiState _calculateNewState(int squareIndex, Player player) {
-    assert(uiState.currentTurn == player);
+  @override
+  Future<UiState> makeMove() async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    _uiState = _computeDashMove();
+    return _uiState;
+  }
+
+  @override
+  void dispose() {
+    // nothing to do.
+  }
+
+  _UiState _computeNewState(int squareIndex, Player player) {
+    assert(_uiState.currentTurn == player);
     assert(!_uiState.gameOver);
-    assert(uiState._squares[squareIndex] == null);
+    assert(_uiState._squares[squareIndex] == null);
 
-    final List<Player?> squares = [...uiState._squares]
-      ..[squareIndex] = player;
+    final List<Player?> squares = [..._uiState._squares]..[squareIndex] =
+        player;
     final bool didWin = _didWin(player, squares);
     final bool gameOver =
         didWin || squares.every((Player? player) => player != null);
 
-    return UiState._(
+    return _UiState(
       squares: squares,
       winner: didWin ? player : null,
       gameOver: gameOver,
@@ -43,18 +74,17 @@ class GameEngine extends ChangeNotifier {
     );
   }
 
-  // TODO: Implement something smarter than random.
   final Random _random = Random();
 
-  void _calculateDashMove() {
-    assert(!uiState.gameOver);
+  _UiState _computeDashMove() {
+    assert(!_uiState.gameOver);
     int nextMove;
     do {
       nextMove = _random.nextInt(9);
-      sleep(const Duration(seconds: 2)); // Dash is a slow thinker and hogs the CPU while thinking.
-    } while (uiState._squares[nextMove] != null);
-    _uiState = _calculateNewState(nextMove, Player.dash);
-    notifyListeners();
+      // Dash is a slow thinker and hogs the CPU while thinking.
+      sleep(const Duration(seconds: 2));
+    } while (_uiState._squares[nextMove] != null);
+    return _computeNewState(nextMove, Player.dash);
   }
 
   bool _didWin(Player player, List<Player?> squares) {
@@ -83,16 +113,16 @@ class GameEngine extends ChangeNotifier {
   }
 }
 
-class UiState {
-  UiState._({
+class _UiState implements UiState {
+  _UiState({
     required List<Player?> squares,
     required this.winner,
     required this.gameOver,
     required this.currentTurn,
   }) : _squares = squares;
 
-  factory UiState._start() {
-    return UiState._(
+  factory _UiState.start() {
+    return _UiState(
       squares: List.filled(9, null),
       winner: null,
       gameOver: false,
@@ -101,20 +131,20 @@ class UiState {
   }
 
   final List<Player?> _squares;
+
+  @override
   final Player? winner;
+  @override
   final bool gameOver;
+  @override
   final Player? currentTurn;
 
-  Player? markingForSquare(int row, int col) {
-    return _squares[_toSquareIndex(row, col)];
+  @override
+  Player? markAtSquare(int row, int col) {
+    return _squares[toSquareIndex(row, col)];
   }
-}
 
-enum Player {
-  dash,
-  human,
-}
-
-int _toSquareIndex(int row, int col) {
-  return col + row * 3;
+  static int toSquareIndex(int row, int col) {
+    return col + row * 3;
+  }
 }
