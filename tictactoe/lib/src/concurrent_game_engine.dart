@@ -37,6 +37,8 @@ class ConcurrentGameEngine implements GameEngine {
 
   @override
   void dispose() {
+    _receiveQueue.cancel();
+    _receivePort.close();
     _isolate?.kill();
     _isolate = null;
   }
