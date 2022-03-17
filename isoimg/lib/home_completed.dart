@@ -124,30 +124,25 @@ class _HomeWidgetState extends State<HomeWidget> {
               child: Image.memory(_image!, gaplessPlayback: true),
             ),
           ProgressWidget(loading: _loading),
-          if (_image == null && !_loading)
-            Center(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      _showImagePicker(sync: true);
-                    },
-                    child: const Text('Load (sync)'),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      _showImagePicker(sync: false);
-                    },
-                    child: const Text('Load (async)'),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
       persistentFooterButtons: <Widget>[
+        TextButton(
+          onPressed: !_loading && _image == null
+              ? (() {
+                  _showImagePicker(sync: true);
+                })
+              : null,
+          child: const Text('Load (sync)'),
+        ),
+        TextButton(
+          onPressed: !_loading && _image == null
+              ? (() {
+                  _showImagePicker(sync: false);
+                })
+              : null,
+          child: const Text('Load (async)'),
+        ),
         TextButton(
           onPressed: !_loading && _image != null ? _applySepiaSync : null,
           child: const Text('Sepia (sync)'),
