@@ -16,7 +16,7 @@ class HomeWidget extends StatefulWidget {
 }
 
 class _HomeWidgetState extends State<HomeWidget> {
-  bool _loading = false;
+  bool _showProgress = false;
   Uint8List? _image;
   Uint8List? _originalImage;
 
@@ -24,13 +24,13 @@ class _HomeWidgetState extends State<HomeWidget> {
     if (path == null) return;
 
     setState(() {
-      _loading = true;
+      _showProgress = true;
     });
     final image = File(path).readAsBytesSync();
     setState(() {
       _image = image;
       _originalImage = image;
-      _loading = false;
+      _showProgress = false;
     });
   }
 
@@ -43,12 +43,12 @@ class _HomeWidgetState extends State<HomeWidget> {
 
   void _applySepia() {
     setState(() {
-      _loading = true;
+      _showProgress = true;
     });
     final image = _applySepiaFilter(_image!);
     setState(() {
       _image = image;
-      _loading = false;
+      _showProgress = false;
     });
   }
 
@@ -86,19 +86,19 @@ class _HomeWidgetState extends State<HomeWidget> {
       ),
       persistentFooterButtons: <Widget>[
         TextButton(
-          onPressed: !_loading && _image == null ? _showImagePicker : null,
+          onPressed: !_showProgress && _image == null ? _showImagePicker : null,
           child: const Text('Load'),
         ),
         TextButton(
-          onPressed: !_loading && _image != null ? _applySepia : null,
+          onPressed: !_showProgress && _image != null ? _applySepia : null,
           child: const Text('Sepia'),
         ),
         TextButton(
-          onPressed: !_loading && _image != _originalImage ? _undo : null,
+          onPressed: !_showProgress && _image != _originalImage ? _undo : null,
           child: const Text('Undo'),
         ),
         TextButton(
-          onPressed: !_loading && _image != null ? _clear : null,
+          onPressed: !_showProgress && _image != null ? _clear : null,
           child: const Text('Clear'),
         ),
       ],
