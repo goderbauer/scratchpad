@@ -123,7 +123,7 @@ class _HomeWidgetState extends State<HomeWidget> {
             Center(
               child: Image.memory(_image!, gaplessPlayback: true),
             ),
-          ProgressWidget(loading: _showProgress),
+          ProgressWidget(show: _showProgress),
         ],
       ),
       persistentFooterButtons: <Widget>[

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+// ignore: unnecessary_import
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as image;
@@ -81,7 +82,7 @@ class _HomeWidgetState extends State<HomeWidget> {
             Center(
               child: Image.memory(_image!, gaplessPlayback: true),
             ),
-          ProgressWidget(loading: _showProgress),
+          ProgressWidget(show: _showProgress),
         ],
       ),
       persistentFooterButtons: <Widget>[
