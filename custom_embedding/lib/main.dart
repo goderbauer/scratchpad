@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,11 +33,17 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
+  static const MethodChannel channel = OptionalMethodChannel('flutter/window');
+
   void _incrementCounter() {
     setState(() {
       _counter++;
     });
+    print(' >>>>> ${WidgetsBinding.instance.platformDispatcher.views}');
+    print(MediaQuery.of(context).size);
   }
+
+  int view = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +62,24 @@ class _MyHomePageState extends State<MyHomePage> {
               '$_counter',
               style: Theme.of(context).textTheme.headline4,
             ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  child: const Text('Open'),
+                  onPressed: () {
+                    channel.invokeMethod('new');
+                  },
+                ),
+                TextButton(
+                  child: const Text('Switch'),
+                  onPressed: () {
+                    view = (view + 1) % 2;
+                    context.findAncestorStateOfType<MediaQueryFromWindowState>()!.selectView(view);
+                  },
+                ),
+              ],
+            )
           ],
         ),
       ),
