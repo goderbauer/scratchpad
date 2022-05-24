@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -30,20 +32,34 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   int _counter = 0;
 
   static const MethodChannel channel = OptionalMethodChannel('flutter/window');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeMetrics() {
+    print('metrics changed');
+    setState(() {
+      // WidgetsBinding.instance.platformDispatcher.views changed.
+    });
+  }
 
   void _incrementCounter() {
     setState(() {
       _counter++;
     });
-    print(' >>>>> ${WidgetsBinding.instance.platformDispatcher.views}');
-    print(MediaQuery.of(context).size);
+    // print(' >>>>> ${WidgetsBinding.instance.platformDispatcher.views}');
+    // print(MediaQuery.of(context).size);
   }
 
-  int view = 0;
+  Object selectedViewId = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -65,17 +81,30 @@ class _MyHomePageState extends State<MyHomePage> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextButton(
-                  child: const Text('Open'),
-                  onPressed: () {
-                    channel.invokeMethod('new');
+                DropdownButton<Object>(
+                  value: selectedViewId,
+                  items: WidgetsBinding.instance.platformDispatcher.views.map((FlutterView view) {
+                    return DropdownMenuItem<Object>(
+                      value: view.viewId,
+                      child: Text(view.toString()),
+                    );
+                  }).toList(),
+                  onChanged: (Object? viewId) {
+                    setState(() {
+                      selectedViewId = viewId!;
+                    });
                   },
                 ),
                 TextButton(
                   child: const Text('Switch'),
                   onPressed: () {
-                    view = (view + 1) % 2;
-                    context.findAncestorStateOfType<MediaQueryFromWindowState>()!.selectView(view);
+                    context.findAncestorStateOfType<MediaQueryFromWindowState>()!.selectView(selectedViewId);
+                  },
+                ),
+                TextButton(
+                  child: const Text('Open'),
+                  onPressed: () {
+                    channel.invokeMethod('new');
                   },
                 ),
               ],
