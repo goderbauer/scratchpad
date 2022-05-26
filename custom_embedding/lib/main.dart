@@ -103,8 +103,9 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 ),
                 TextButton(
                   child: const Text('Open'),
-                  onPressed: () {
-                    channel.invokeMethod('new');
+                  onPressed: () async {
+                    int id = await channel.invokeMethod('new');
+                    print('NEW WINDOW: $id');
                   },
                 ),
               ],
