@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 void main() {
-  print(PlatformDispatcher.instance.views.first.devicePixelRatio);
+  // print(PlatformDispatcher.instance.views.first.devicePixelRatio);
   runApp(
     const Directionality(
       textDirection: TextDirection.ltr,
@@ -110,7 +110,6 @@ class SubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    [].insert
     return Container(
       color: Colors.yellow,
       child: Center(
