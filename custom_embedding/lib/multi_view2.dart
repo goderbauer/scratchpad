@@ -110,7 +110,6 @@ class _MainScreenState extends State<MainScreen> {
                       child: const Text('top-level view'),
                     ),
                     const SizedBox(width: 8),
-                    // TODO(window): This widget is throwing.
                     BackgroundColor(
                       color: _sideBackground,
                       child: ViewSideStages(
