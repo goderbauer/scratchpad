@@ -44,7 +44,6 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
   @override
   void didChangeMetrics() {
-    print('metrics changed');
     setState(() {
       // WidgetsBinding.instance.platformDispatcher.views changed.
     });
@@ -97,14 +96,13 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 TextButton(
                   child: const Text('Switch'),
                   onPressed: () {
-                    context.findAncestorStateOfType<MediaQueryFromWindowState>()!.selectView(selectedViewId);
+                    // context.findAncestorStateOfType<MediaQueryFromWindowState>()!.selectView(selectedViewId);
                   },
                 ),
                 TextButton(
                   child: const Text('Open'),
                   onPressed: () async {
                     int id = await channel.invokeMethod('new');
-                    print('NEW WINDOW: $id');
                   },
                 ),
               ],
