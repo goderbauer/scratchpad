@@ -52,8 +52,8 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return BackgroundColor(
       color: _background,
-      child: ViewStages(
-        children: _views,
+      child: StageManager(
+        stages: _views,
       ),
     );
   }
@@ -112,8 +112,8 @@ class _MainScreenState extends State<MainScreen> {
                     const SizedBox(width: 8),
                     BackgroundColor(
                       color: _sideBackground,
-                      child: ViewSideStages(
-                        sideViews: _sideViews,
+                      child: SideStageManager(
+                        stages: _sideViews,
                         child: OutlinedButton(
                           onPressed: _createSideView,
                           child: const Text('side view'),
@@ -176,17 +176,12 @@ class SideView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: Text("Side View ${View.of(context).viewId}")),
-          body: SizedBox.expand(
-            child: ColoredBox(
-              color: BackgroundColor.of(context),
-              child: const Center(
-                child: Text("Hello"),
-              ),
-            ),
-          )
+    return SizedBox.expand(
+      child: ColoredBox(
+        color: BackgroundColor.of(context),
+        child: Center(
+          child: Text("SizeView ${View.of(context).viewId}"),
+        ),
       ),
     );
   }
