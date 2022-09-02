@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 void main() {
@@ -140,6 +141,13 @@ class _MainScreenState extends State<MainScreen> {
                       child: const Text('change side color'),
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: () {
+                    SemanticsBinding.instance.setSemanticsEnabled(!SemanticsBinding.instance.semanticsCoordinator.enabled);
+                  },
+                  child: const Text('toggle semantics'),
                 ),
               ],
             )
