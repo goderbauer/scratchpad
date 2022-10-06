@@ -188,7 +188,18 @@ class SideView extends StatelessWidget {
       child: ColoredBox(
         color: BackgroundColor.of(context),
         child: Center(
-          child: Text("SizeView ${View.of(context).viewId}"),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("SizeView ${View.of(context).viewId}"),
+              OutlinedButton(
+                onPressed: () {
+                  print('Hello from View ${View.of(context).viewId}');
+                },
+                child: const Text('Say hello'),
+              )
+            ],
+          ),
         ),
       ),
     );
