@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 
 class SearchableText extends StatefulWidget {
   const SearchableText(this.text, {super.key, this.style});
@@ -86,12 +88,14 @@ class _SearchableTextState extends State<SearchableText> implements Searchable {
       _children = null;
       _activeIndex = newIndex;
     });
+    _ensureVisible();
     return true;
   }
 
   @override
   bool previous() {
-    int newIndex = _activeIndex == null ? _pieces.length - 2 : _activeIndex! - 1;
+    int newIndex =
+        _activeIndex == null ? _pieces.length - 2 : _activeIndex! - 1;
     if (newIndex < 0) {
       if (_activeIndex != null) {
         setState(() {
@@ -105,7 +109,41 @@ class _SearchableTextState extends State<SearchableText> implements Searchable {
       _children = null;
       _activeIndex = newIndex;
     });
+    _ensureVisible();
     return true;
+  }
+
+  bool _scheduled = false;
+
+  void _ensureVisible() {
+    if (_scheduled) {
+      return;
+    }
+    SchedulerBinding.instance.addPostFrameCallback((timeStamp) {
+      _scheduled = false;
+      if (!mounted) {
+        return;
+      }
+      final RenderParagraph paragraph =
+          context.findRenderObject()! as RenderParagraph;
+      int start = _children!
+          .sublist(0, _activeIndex! * 2 + 1)
+          .fold(0, (int i, TextSpan span) => i + span.text!.length);
+
+      List<TextBox> boxes = paragraph.getBoxesForSelection(
+        TextSelection(
+          baseOffset: start,
+          extentOffset: start + _children![_activeIndex! * 2 + 1].text!.length,
+        ),
+      );
+      final Rect? boundingBox = boxes.fold<Rect?>(
+        null,
+        (Rect? rect, TextBox box) =>
+            rect?.expandToInclude(box.toRect()) ?? box.toRect(),
+      );
+      paragraph.showOnScreen(rect: boundingBox!);
+    });
+    _scheduled = true;
   }
 
   void _updateChildren() {
@@ -179,6 +217,12 @@ class _SearchInPageState extends State<SearchInPage>
   }
 
   void _handleSearch() {
+    if (widget.searchTerm.value.text.isEmpty) {
+      for (final Searchable searchable in _searchables) {
+        searchable.clear();
+      }
+      return;
+    }
     bool needsNext = true;
     for (final Searchable searchable in _searchables) {
       searchable.searchFor(widget.searchTerm.value.text);
@@ -197,7 +241,7 @@ class _SearchInPageState extends State<SearchInPage>
     if (_currentActive == null) {
       searchSpace = _searchables;
     } else {
-      int activeIndex =  _searchables.indexOf(_currentActive!);
+      int activeIndex = _searchables.indexOf(_currentActive!);
       searchSpace = [
         _currentActive!,
         ..._searchables.sublist(activeIndex + 1),
@@ -222,7 +266,7 @@ class _SearchInPageState extends State<SearchInPage>
     if (_currentActive == null) {
       searchSpace = _searchables;
     } else {
-      int activeIndex =  _searchables.indexOf(_currentActive!);
+      int activeIndex = _searchables.indexOf(_currentActive!);
       searchSpace = [
         ..._searchables.sublist(activeIndex + 1),
         ..._searchables.sublist(0, activeIndex),
@@ -242,6 +286,14 @@ class _SearchInPageState extends State<SearchInPage>
   }
 
   @override
+  void clear() {
+    _currentActive = null;
+    for (final Searchable searchable in _searchables) {
+      searchable.clear();
+    }
+  }
+
+  @override
   void register(Searchable searchable) {
     _searchables.add(searchable);
   }
@@ -257,14 +309,6 @@ class _SearchInPageState extends State<SearchInPage>
       conductor: this,
       child: widget.child,
     );
-  }
-
-  @override
-  void clear() {
-    _currentActive = null;
-    for (final Searchable searchable in _searchables) {
-      searchable.clear();
-    }
   }
 }
 
