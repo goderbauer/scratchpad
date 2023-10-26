@@ -40,13 +40,14 @@ class _RootWidgetState extends State<RootWidget> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     entry?.dispose();
+    final Intent intent = VoidCallbackIntent(() {
+      setState(() {
+        showSearch = true;
+      });
+    });
     entry = ShortcutRegistry.of(context).addAll(<ShortcutActivator, Intent>{
-      const SingleActivator(LogicalKeyboardKey.keyF, meta: true):
-          VoidCallbackIntent(() {
-        setState(() {
-          showSearch = true;
-        });
-      })
+      const SingleActivator(LogicalKeyboardKey.keyF, meta: true): intent,
+      const SingleActivator(LogicalKeyboardKey.keyF, control: true): intent,
     });
   }
 
