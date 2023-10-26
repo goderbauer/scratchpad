@@ -62,134 +62,140 @@ class _RootWidgetState extends State<RootWidget> {
       searchTerm: _controller,
       child: Scaffold(
         body: SafeArea(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              NavigationRail(
-                extended: true,
-                selectedIndex: 1,
-                groupAlignment: -1.0,
-                onDestinationSelected: (int index) {
-                  // This is a demo, we ignore the other pages.
-                },
-                leading: const SearchableText(
-                  'Märchen',
-                  style: TextStyle(fontSize: 28),
-                ),
-                destinations: const <NavigationRailDestination>[
-                  NavigationRailDestination(
-                    icon: Icon(Icons.book_outlined),
-                    selectedIcon: Icon(Icons.book),
-                    label: SearchableText('Hänsel und Gretel'),
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  AppBar(
+                    title: const SearchableText('Fairy Tales'),
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
                   ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.book_outlined),
-                    selectedIcon: Icon(Icons.book),
-                    label: SearchableText('Rotkäppchen'),
-                  ),
-                  NavigationRailDestination(
-                    icon: Icon(Icons.book_outlined),
-                    selectedIcon: Icon(Icons.book),
-                    label: SearchableText('Schneewittchen'),
-                  ),
-                ],
-              ),
-              const VerticalDivider(thickness: 1, width: 1),
-              // This is the main content.
-              Expanded(
-                child: Stack(
-                  children: [
-                    const SingleChildScrollView(
-                      child: Padding(
-                        padding: EdgeInsets.all(30.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SearchableText(
-                              'Rotkäppchen',
-                              style: TextStyle(fontSize: 28),
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        NavigationRail(
+                          extended: true,
+                          selectedIndex: 1,
+                          groupAlignment: -1.0,
+                          onDestinationSelected: (int index) {
+                            // This is a demo, we ignore the other pages.
+                          },
+                          destinations: const <NavigationRailDestination>[
+                            NavigationRailDestination(
+                              icon: Icon(Icons.book_outlined),
+                              selectedIcon: Icon(Icons.book),
+                              label: SearchableText('Hänsel and Gretel'),
                             ),
-                            SizedBox(
-                              height: 15.0,
+                            NavigationRailDestination(
+                              icon: Icon(Icons.book_outlined),
+                              selectedIcon: Icon(Icons.book),
+                              label: SearchableText('Little Red-Cap'),
                             ),
-                            SearchableText(story),
+                            NavigationRailDestination(
+                              icon: Icon(Icons.book_outlined),
+                              selectedIcon: Icon(Icons.book),
+                              label: SearchableText('Rapunzel'),
+                            ),
                           ],
                         ),
-                      ),
-                    ),
-                    if (showSearch)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Builder(builder: (BuildContext context) {
-                          final SearchConductor conductor =
-                              SearchConductor.of(context);
-                          return Shortcuts(
-                            shortcuts: <ShortcutActivator, Intent>{
-                              const SingleActivator(LogicalKeyboardKey.enter):
-                                  VoidCallbackIntent(
-                                () {
-                                  conductor.next();
-                                },
-                              ),
-                              const SingleActivator(LogicalKeyboardKey.escape):
-                                  VoidCallbackIntent(
-                                () {
-                                  _controller.clear();
-                                  conductor.clear();
-                                  setState(() {
-                                    showSearch = false;
-                                  });
-                                },
-                              ),
-                            },
-                            child: ColoredBox(
-                              color: Colors.grey,
-                              child: Row(
+                        const VerticalDivider(thickness: 1, width: 1),
+                        // This is the main content.
+                        const Expanded(
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: EdgeInsets.all(30.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: SizedBox(
-                                      width: 200,
-                                      child: Center(
-                                        child: TextField(
-                                          controller: _controller,
-                                          autofocus: true,
-                                        ),
-                                      ),
-                                    ),
+                                  SearchableText(
+                                    'Little Red-Cap',
+                                    style: TextStyle(fontSize: 28),
                                   ),
-                                  IconButton(
-                                    onPressed: () {
-                                      conductor.previous();
-                                    },
-                                    icon: const Icon(Icons.expand_less),
+                                  SizedBox(
+                                    height: 15.0,
                                   ),
-                                  IconButton(
-                                    onPressed: () {
-                                      conductor.next();
-                                    },
-                                    icon: const Icon(Icons.expand_more),
-                                  ),
-                                  IconButton(
-                                    onPressed: () {
-                                      _controller.clear();
-                                      setState(() {
-                                        showSearch = false;
-                                      });
-                                      conductor.clear();
-                                    },
-                                    icon: const Icon(Icons.close),
-                                  ),
+                                  SearchableText(story),
                                 ],
                               ),
                             ),
-                          );
-                        }),
-                      ),
-                  ],
-                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+              if (showSearch)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Builder(builder: (BuildContext context) {
+                    final SearchConductor conductor =
+                    SearchConductor.of(context);
+                    return Shortcuts(
+                      shortcuts: <ShortcutActivator, Intent>{
+                        const SingleActivator(LogicalKeyboardKey.enter):
+                        VoidCallbackIntent(
+                              () {
+                            conductor.next();
+                          },
+                        ),
+                        const SingleActivator(LogicalKeyboardKey.escape):
+                        VoidCallbackIntent(
+                              () {
+                            _controller.clear();
+                            conductor.clear();
+                            setState(() {
+                              showSearch = false;
+                            });
+                          },
+                        ),
+                      },
+                      child: ColoredBox(
+                        color: Colors.grey,
+                        child: Row(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: SizedBox(
+                                width: 200,
+                                child: Center(
+                                  child: TextField(
+                                    controller: _controller,
+                                    autofocus: true,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                conductor.previous();
+                              },
+                              icon: const Icon(Icons.expand_less),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                conductor.next();
+                              },
+                              icon: const Icon(Icons.expand_more),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                _controller.clear();
+                                setState(() {
+                                  showSearch = false;
+                                });
+                                conductor.clear();
+                              },
+                              icon: const Icon(Icons.close),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
             ],
           ),
         ),
