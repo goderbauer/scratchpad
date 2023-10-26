@@ -63,6 +63,7 @@ class _RootWidgetState extends State<RootWidget> {
       child: Scaffold(
         body: SafeArea(
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               NavigationRail(
                 extended: true,
@@ -120,41 +121,71 @@ class _RootWidgetState extends State<RootWidget> {
                       Positioned(
                         right: 0,
                         top: 0,
-                        child: ColoredBox(
-                          color: Colors.grey,
-                          child: Row(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: SizedBox(
-                                  width: 200,
-                                  child: Center(
-                                    child: TextField(
-                                      controller: _controller,
-                                      autofocus: true,
-                                    ),
-                                  ),
-                                ),
+                        child: Builder(builder: (BuildContext context) {
+                          final SearchConductor conductor =
+                              SearchConductor.of(context);
+                          return Shortcuts(
+                            shortcuts: <ShortcutActivator, Intent>{
+                              const SingleActivator(LogicalKeyboardKey.enter):
+                                  VoidCallbackIntent(
+                                () {
+                                  conductor.next();
+                                },
                               ),
-                              IconButton(
-                                onPressed: () {},
-                                icon: const Icon(Icons.expand_less),
-                              ),
-                              IconButton(
-                                onPressed: () {},
-                                icon: const Icon(Icons.expand_more),
-                              ),
-                              IconButton(
-                                onPressed: () {
+                              const SingleActivator(LogicalKeyboardKey.escape):
+                                  VoidCallbackIntent(
+                                () {
+                                  _controller.clear();
+                                  conductor.clear();
                                   setState(() {
                                     showSearch = false;
                                   });
                                 },
-                                icon: const Icon(Icons.close),
                               ),
-                            ],
-                          ),
-                        ),
+                            },
+                            child: ColoredBox(
+                              color: Colors.grey,
+                              child: Row(
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: SizedBox(
+                                      width: 200,
+                                      child: Center(
+                                        child: TextField(
+                                          controller: _controller,
+                                          autofocus: true,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      conductor.previous();
+                                    },
+                                    icon: const Icon(Icons.expand_less),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      conductor.next();
+                                    },
+                                    icon: const Icon(Icons.expand_more),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      _controller.clear();
+                                      setState(() {
+                                        showSearch = false;
+                                      });
+                                      conductor.clear();
+                                    },
+                                    icon: const Icon(Icons.close),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
                       ),
                   ],
                 ),

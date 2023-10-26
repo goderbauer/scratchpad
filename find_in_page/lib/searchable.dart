@@ -51,10 +51,12 @@ class _SearchableTextState extends State<SearchableText> implements Searchable {
 
   @override
   void clear() {
-    _searchTerm = null;
-    _children = null;
-    _activeIndex = null;
-    _pieces = <String>[];
+    setState(() {
+      _searchTerm = null;
+      _children = null;
+      _activeIndex = null;
+      _pieces = <String>[];
+    });
   }
 
   @override
@@ -161,6 +163,7 @@ class SearchInPage extends StatefulWidget {
 class _SearchInPageState extends State<SearchInPage>
     implements SearchConductor {
   final List<Searchable> _searchables = <Searchable>[];
+  Searchable? _currentActive;
 
   @override
   void initState() {
@@ -181,6 +184,59 @@ class _SearchInPageState extends State<SearchInPage>
       searchable.searchFor(widget.searchTerm.value.text);
       if (needsNext) {
         needsNext = !searchable.next();
+        if (!needsNext) {
+          _currentActive = searchable;
+        }
+      }
+    }
+  }
+
+  @override
+  void next() {
+    final List<Searchable> searchSpace;
+    if (_currentActive == null) {
+      searchSpace = _searchables;
+    } else {
+      int activeIndex =  _searchables.indexOf(_currentActive!);
+      searchSpace = [
+        _currentActive!,
+        ..._searchables.sublist(activeIndex + 1),
+        ..._searchables.sublist(0, activeIndex)
+      ];
+    }
+    bool needsNext = true;
+    for (final Searchable searchable in searchSpace) {
+      if (needsNext) {
+        needsNext = !searchable.next();
+        if (!needsNext) {
+          _currentActive = searchable;
+          break;
+        }
+      }
+    }
+  }
+
+  @override
+  void previous() {
+    final List<Searchable> searchSpace;
+    if (_currentActive == null) {
+      searchSpace = _searchables;
+    } else {
+      int activeIndex =  _searchables.indexOf(_currentActive!);
+      searchSpace = [
+        ..._searchables.sublist(activeIndex + 1),
+        ..._searchables.sublist(0, activeIndex),
+        _currentActive!,
+      ];
+    }
+    bool needsNext = true;
+    for (final Searchable searchable in searchSpace.reversed) {
+      if (needsNext) {
+        needsNext = !searchable.previous();
+        if (!needsNext) {
+          _currentActive = searchable;
+          break;
+        }
       }
     }
   }
@@ -202,6 +258,14 @@ class _SearchInPageState extends State<SearchInPage>
       child: widget.child,
     );
   }
+
+  @override
+  void clear() {
+    _currentActive = null;
+    for (final Searchable searchable in _searchables) {
+      searchable.clear();
+    }
+  }
 }
 
 abstract class Searchable {
@@ -218,6 +282,10 @@ abstract class Searchable {
 abstract class SearchConductor {
   void register(Searchable searchable);
   void unregister(Searchable searchable);
+
+  void next();
+  void previous();
+  void clear();
 
   static SearchConductor of(BuildContext context) {
     return context
