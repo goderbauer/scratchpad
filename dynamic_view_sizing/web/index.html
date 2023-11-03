@@ -32,6 +32,14 @@
   <title>dynamic_view_sizing</title>
   <link rel="manifest" href="manifest.json">
 
+  <style>
+    .some-style {
+      border: 2px dashed black;
+      max-width: 75%;
+      margin: 0 auto;
+    }
+  </style>
+
   <script>
     // The value below is injected by flutter build, do not touch.
     const serviceWorkerVersion = null;
@@ -40,6 +48,11 @@
   <script src="flutter.js" defer></script>
 </head>
 <body>
+  <h1>Resizable views</h1>
+  <div id="flutterTarget" class="some-style"></div>
+  <p>Click on the yellow content to make it 100px taller, or double click to make it 100px shorter!</p>
+  <p>This text should reflow with the resizes of the Flutter canvas.</p>
+  <p><em>Resizing is driven by the code of the Flutter app, and not by any JS-interop tricks.</em></p>
   <script>
     window.addEventListener('load', function(ev) {
       // Download main.dart.js
@@ -48,7 +61,9 @@
           serviceWorkerVersion: serviceWorkerVersion,
         },
         onEntrypointLoaded: function(engineInitializer) {
-          engineInitializer.initializeEngine().then(function(appRunner) {
+          engineInitializer.initializeEngine({
+            hostElement: flutterTarget,
+          }).then(function(appRunner) {
             appRunner.runApp();
           });
         }
