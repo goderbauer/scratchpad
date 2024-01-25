@@ -3,7 +3,17 @@ import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-class WindowController {}
+class WindowController {
+  WindowController({
+    this.viewAnchor,
+    this.offset,
+    this.size, // Should be constraints
+  });
+
+  final Offset? offset; // relative to origin of viewAnchor, if specified.
+  final FlutterView? viewAnchor;
+  final Size? size;
+}
 
 class Window extends StatefulWidget {
   const Window({super.key, this.controller, required this.child});
@@ -38,7 +48,21 @@ class _WindowState extends State<Window> with WidgetsBindingObserver {
   }
 
   Future<void> _createWindow() async {
-    int? viewId = await _windowChannel.invokeMethod('create');
+    final Map<String, Object?> windowSpec = {
+      if (widget.controller?.offset != null) ...{
+        'offsetX': widget.controller!.offset!.dx,
+        'offsetY' : widget.controller!.offset!.dy,
+      },
+      if (widget.controller?.viewAnchor != null)
+        'viewAnchor': widget.controller!.viewAnchor!.viewId,
+      if (widget.controller?.size != null) ...{
+        'height': widget.controller!.size!.height,
+        'width': widget.controller!.size!.width,
+      }
+    };
+    print(windowSpec);
+
+    int? viewId = await _windowChannel.invokeMethod('create', windowSpec);
     print('Received: $viewId');
     if (viewId == null) {
       return;

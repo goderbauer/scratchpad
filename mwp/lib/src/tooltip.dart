@@ -18,15 +18,12 @@ class WindowedTooltip extends StatefulWidget {
 }
 
 class _WindowedTooltipState extends State<WindowedTooltip> {
-  bool _showTooltip = false;
-  final WindowController _controller = WindowController(
-      // constraints: const BoxConstraints(),
-      );
+  WindowController? _controller;
 
   @override
   Widget build(BuildContext context) {
     return ViewAnchor(
-      view: _showTooltip
+      view: _controller != null
           ? Window(
               controller: _controller,
               child: Container(
@@ -40,12 +37,16 @@ class _WindowedTooltipState extends State<WindowedTooltip> {
       child: MouseRegion(
         onEnter: (PointerEnterEvent event) {
           setState(() {
-            _showTooltip = true;
+            _controller = WindowController(
+              offset: event.position + const Offset(5, 5),
+              viewAnchor: View.of(context),
+              size: const Size(860, 25),
+            );
           });
         },
         onExit: (PointerExitEvent event) {
           setState(() {
-            _showTooltip = false;
+            _controller = null;
           });
         },
         child: widget.child,
