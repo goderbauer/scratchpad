@@ -27,9 +27,12 @@ class _WindowedContextMenuState extends State<WindowedContextMenu> {
           ? Window(
         controller: _controller,
         child: Container(
-          color: Colors.grey.withAlpha(250),
-          child: Column(
-            children: widget.entries,
+          color: Colors.white,
+          margin: EdgeInsets.all(2.0),
+          child: Material(
+            child: Column(
+              children: widget.entries,
+            ),
           )
         ),
       )

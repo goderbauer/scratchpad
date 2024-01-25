@@ -17,11 +17,11 @@ class AuxiliaryWindowApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<Widget> entries = List.filled(
       10,
-      ElevatedButton(
-        onPressed: () {
+      ListTile(
+        onTap: () {
           print('Tap');
         },
-        child: const Text('Hello'),
+        title: const Text('Hello'),
       ),
     );
 
@@ -33,6 +33,7 @@ class AuxiliaryWindowApp extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(onTap: () {}, title: Text('dd')),
             WindowedTooltip(
               message:
                   'Hello there! I am a tooltip so wide that the main window cannot contain me. I am ignoring all window bounds. Try to stop me!',
