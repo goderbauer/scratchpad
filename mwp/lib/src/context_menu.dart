@@ -44,12 +44,13 @@ class _WindowedContextMenuState extends State<WindowedContextMenu> {
           });
         },
         child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
           onSecondaryTapUp: (TapUpDetails details) {
             setState(() {
               _controller = WindowController(
                 offset: details.globalPosition + const Offset(10, 20),
                 viewAnchor: View.of(context),
-                size: const Size(150, 50*10),
+                size: const Size(230, 50*10 - 15),
               );
             });
           },

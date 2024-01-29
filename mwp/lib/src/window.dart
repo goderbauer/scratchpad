@@ -8,11 +8,13 @@ class WindowController {
     this.viewAnchor,
     this.offset,
     this.size, // Should be constraints
+    this.pointerEvents = true,
   });
 
   final Offset? offset; // relative to origin of viewAnchor, if specified.
   final FlutterView? viewAnchor;
   final Size? size;
+  final bool pointerEvents;
 }
 
 class Window extends StatefulWidget {
@@ -58,7 +60,8 @@ class _WindowState extends State<Window> with WidgetsBindingObserver {
       if (widget.controller?.size != null) ...{
         'height': widget.controller!.size!.height,
         'width': widget.controller!.size!.width,
-      }
+      },
+      'pointerEvents': widget.controller?.pointerEvents ?? true,
     };
     print(windowSpec);
 

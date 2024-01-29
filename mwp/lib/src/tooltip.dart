@@ -40,7 +40,8 @@ class _WindowedTooltipState extends State<WindowedTooltip> {
             _controller = WindowController(
               offset: event.position + const Offset(5, 5),
               viewAnchor: View.of(context),
-              size: const Size(860, 25),
+              size: const Size(610, 25),
+              pointerEvents: false,
             );
           });
         },
