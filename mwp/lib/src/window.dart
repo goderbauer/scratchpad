@@ -1,7 +1,8 @@
 import 'dart:ui';
 
-import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+
+import 'dart_ui.dart';
 
 class WindowController {
   WindowController({
@@ -27,15 +28,10 @@ class Window extends StatefulWidget {
   State<Window> createState() => _WindowState();
 }
 
-class _WindowState extends State<Window> with WidgetsBindingObserver {
-  FlutterView? _view;
+class _WindowState extends State<Window> {
+  FlutterWindow? _window;
 
   static const Widget _placeholder = ViewCollection(views: <Widget>[]);
-
-  @override
-  void didChangeMetrics() {
-    print(WidgetsBinding.instance.platformDispatcher.views);
-  }
 
   @override
   void initState() {
@@ -45,56 +41,31 @@ class _WindowState extends State<Window> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _disposeWindow();
+    _window?.close();
+    _window = null;
     super.dispose();
   }
 
   Future<void> _createWindow() async {
-    final Map<String, Object?> windowSpec = {
-      if (widget.controller?.offset != null) ...{
-        'offsetX': widget.controller!.offset!.dx,
-        'offsetY' : widget.controller!.offset!.dy,
-      },
-      if (widget.controller?.viewAnchor != null)
-        'viewAnchor': widget.controller!.viewAnchor!.viewId,
-      if (widget.controller?.size != null) ...{
-        'height': widget.controller!.size!.height,
-        'width': widget.controller!.size!.width,
-      },
-      'pointerEvents': widget.controller?.pointerEvents ?? true,
-    };
-    print(windowSpec);
-
-    int? viewId = await _windowChannel.invokeMethod('create', windowSpec);
-    print('Received: $viewId');
-    if (viewId == null) {
+    final FlutterWindow window = await WidgetsBinding.instance.platformDispatcher.createWindow(widget.controller?._request);
+    if (!mounted) {
+      window.close();
       return;
     }
-    // TODO: deal with unmounted.
     setState(() {
-      _view = WidgetsBinding.instance.platformDispatcher.view(id: viewId);
+      _window = window;
     });
-  }
-
-  // Method must remain callable even if unmounted.
-  void _disposeWindow() async {
-    if (_view != null) {
-      _windowChannel.invokeMethod('dispose', _view!.viewId);
-      _view = null;
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return _view == null
+    return _window == null
         ? _placeholder
         : View(
-            view: _view!,
+            view: _window!.view,
             child: widget.child,
           );
   }
 }
-
-const MethodChannel _windowChannel = OptionalMethodChannel('flutter/window');
 
 // Thought: Should the window be attached to the controller?

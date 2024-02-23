@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:mwp/src/context_menu.dart';
 import 'package:mwp/src/tooltip.dart';
@@ -22,16 +24,6 @@ class _AuxiliaryWindowAppState extends State<AuxiliaryWindowApp> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> entries = List.filled(
-      10,
-      ListTile(
-        onTap: () {
-          print('Tap');
-        },
-        title: const Text('Hello'),
-      ),
-    );
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('🇩🇪 Guten Tag! 🇩🇪'),
@@ -98,6 +90,10 @@ class _AuxiliaryWindowAppState extends State<AuxiliaryWindowApp> {
                     'Rinderkennzeichnungsfleischetikettierungsüberwachungsaufgabenübertragungsgesetz',
                 child: ElevatedButton(
                   onPressed: () {
+                    for (Display d in PlatformDispatcher.instance.displays) {
+                      print('Display: ${d.size} - ${d.devicePixelRatio}');
+                    }
+                    print('current: ${View.of(context).devicePixelRatio}, ${View.of(context).physicalConstraints}');
                     setState(() {
                       showExp = !showExp;
                     });
