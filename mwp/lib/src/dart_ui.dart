@@ -11,14 +11,17 @@ import 'package:meta/meta.dart';
 
 extension WindowApi on PlatformDispatcher {
   Iterable<FlutterWindow> get windows => _WindowManager.instance.windows;
+  FlutterWindow? window({required int id}) => _WindowManager.instance.window(id: id);
   Future<FlutterWindow> createWindow(FlutterWindowRequest request) {
     return _WindowManager.instance.createWindow(request);
   }
-  VoidCallback? get onWindowsChanged => _WindowManager.instance.onWindowsChanged;
-  set onWindowsChanged(VoidCallback? value) {
+  WindowsChangedCallback? get onWindowsChanged => _WindowManager.instance.onWindowsChanged;
+  set onWindowsChanged(WindowsChangedCallback? value) {
     _WindowManager.instance.onWindowsChanged = value;
   }
 }
+
+typedef WindowsChangedCallback = void Function(Iterable<int> windowIds);
 
 // This should live on the PlatformDispatcher.
 class _WindowManager {
@@ -32,6 +35,8 @@ class _WindowManager {
   Iterable<FlutterWindow> get windows => _windows.values;
   final Map<int, FlutterWindow> _windows = <int, FlutterWindow>{};
 
+  FlutterWindow? window({required int id}) => _windows[id];
+
   Future<FlutterWindow> createWindow(FlutterWindowRequest request) async {
     final int? windowId = await _windowChannel.invokeMethod<int>('create', request._encode());
     if (windowId == null) {
@@ -44,12 +49,12 @@ class _WindowManager {
     return window;
   }
 
-  VoidCallback? onWindowsChanged;
+  WindowsChangedCallback? onWindowsChanged;
 
   static const MethodChannel _windowChannel = MethodChannel('flutter/window');
 
   Future<Object?> _handleChannelInvocation(MethodCall call) async {
-    bool invokeCallback = true;
+    final List<int> ids = <int>[];
     switch (call.method) {
       case 'update':
         final Map<String, Object> args = call.arguments as Map<String, Object>;
@@ -62,20 +67,24 @@ class _WindowManager {
         } else {
           _windows[windowId] = FlutterWindow._(windowId, config, view);
         }
+        ids.add(windowId);
       case 'delete':
-        invokeCallback = _windows.remove(call.arguments) != null;
+        final int windowId = call.arguments as int;
+        if (_windows.remove(windowId) != null) {
+          ids.add(windowId);
+        }
     }
-    if (invokeCallback) {
-      onWindowsChanged?.call();
+    if (ids.isNotEmpty) {
+      onWindowsChanged?.call(ids);
     }
     return null;
   }
 }
 
 class FlutterWindow {
-  FlutterWindow._(this._id, this._config, this._view);
+  FlutterWindow._(this.id, this._config, this._view);
 
-  final int _id;
+  final int id;
   _FlutterWindowConfiguration _config;
   FlutterView _view;
 
@@ -86,28 +95,33 @@ class FlutterWindow {
 
   FlutterView get view => _view;
   Size get contentSize => _config.contentSize;
+  RelativeOffset get contentLocation => _config.contentLocation;
 
   Future<void> requestUpdate(FlutterWindowRequest request) async {
-    await _WindowManager._windowChannel.invokeMethod('update', <String, Object?>{'id': _id, 'request': request._encode()});
+    await _WindowManager._windowChannel.invokeMethod('update', <String, Object?>{'id': id, 'request': request._encode()});
   }
 
   Future<void> close() async {
-    await _WindowManager._windowChannel.invokeMethod('close', _id);
+    await _WindowManager._windowChannel.invokeMethod('close', id);
   }
 }
 
 // Everything is in physical pixel!
 @immutable
 class FlutterWindowRequest {
-  const FlutterWindowRequest({this.contentOffset, this.contentConstraints, this.allowPointerEvents});
+  const FlutterWindowRequest({
+    this.contentLocation,
+    this.contentConstraints,
+    this.allowPointerEvents,
+  });
 
-  final RelativeOffset? contentOffset;
+  final RelativeOffset? contentLocation;
   final ViewConstraints? contentConstraints;
   final bool? allowPointerEvents;
 
   Object? _encode() {
     return <String, Object?>{
-      'offset': contentOffset?._encode(),
+      'location': contentLocation?._encode(),
       'constraint_min_width': contentConstraints?.minWidth,
       'constraint_max_width': contentConstraints?.maxWidth,
       'constraint_min_height': contentConstraints?.minHeight,
@@ -122,7 +136,7 @@ class _FlutterWindowConfiguration {
   const _FlutterWindowConfiguration({
     required this.viewId,
     required this.contentSize,
-    required this.contentOffset,
+    required this.contentLocation,
   });
 
   factory _FlutterWindowConfiguration.decode(Object encoded) {
@@ -130,19 +144,20 @@ class _FlutterWindowConfiguration {
     return _FlutterWindowConfiguration(
       viewId: decoded['viewId']! as int,
       contentSize: Size(decoded['width']! as double, decoded['height']! as double),
-      contentOffset: RelativeOffset._decode(decoded['offset']!),
+      contentLocation: RelativeOffset._decode(decoded['offset']!),
     );
   }
 
   final int viewId;
   final Size contentSize;
-  final RelativeOffset contentOffset;
+  final RelativeOffset contentLocation;
 }
 
 @immutable
 class RelativeOffset {
   const RelativeOffset.display(Display this.display, this.offset) : view = null;
   const RelativeOffset.view(FlutterView this.view, this.offset) : display = null;
+  const RelativeOffset._(this.view, this.display, this.offset) : assert(view ==null || display == null);
 
   factory RelativeOffset._decode(Object encoded) {
     final Map<String, Object?> decoded = encoded as Map<String, Object?>;
@@ -168,6 +183,9 @@ class RelativeOffset {
   final Offset offset;
 
   double get devicePixelRatio => view?.devicePixelRatio ?? display?.devicePixelRatio ?? 1.0;
+
+  RelativeOffset operator *(double operand) => RelativeOffset._(view, display, offset * operand);
+  RelativeOffset operator /(double operand) => RelativeOffset._(view, display, offset / operand);
 
   Object _encode() {
     return <String, Object?>{

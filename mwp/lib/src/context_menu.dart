@@ -1,4 +1,3 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import 'window.dart';
@@ -28,7 +27,7 @@ class _WindowedContextMenuState extends State<WindowedContextMenu> {
         controller: _controller,
         child: Container(
           color: Colors.white,
-          margin: EdgeInsets.all(2.0),
+          margin: const EdgeInsets.all(2.0),
           child: Material(
             child: Column(
               children: widget.entries,
