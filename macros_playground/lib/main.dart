@@ -3,19 +3,36 @@ import 'package:flutter/material.dart';
 import 'src/macro.dart';
 
 void main() {
-  runApp(const Foo());
+  runApp(const App(name: 'Michael'));
 }
 
-@Stateful()
-class Foo extends State { // TODO: The macro could add "extends State implements Widget", https://github.com/dart-lang/sdk/issues/55425
-  @input String? get name;
-  @input int? get age;
+@Stateless() // TODO: would be nice if this could be @statelessWidget instead.
+// TODO: fix lint, https://github.com/dart-lang/linter/issues/4936
+// ignore: use_key_in_widget_constructors
+class App extends StatelessWidget { // TODO: The macro should add "extends StatelessWidget", https://github.com/dart-lang/sdk/issues/55425
+  @Input() String? get name;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Counter(
+        name: name,
+        startValue: 10,
+      ),
+    );
+  }
+}
+
+@Stateful() // TODO: would be nice if this could be @statefulWidget instead.
+class Counter extends State { // TODO: The macro should add "extends State", https://github.com/dart-lang/sdk/issues/55425
+  // TODO: How to specify default values and initializer asserts?
+  @Input() String? get name;
+  @Input() int? get startValue;
 
   int _count = 0;
 
   @override
   Widget build(BuildContext context) {
-    key
     return Scaffold(
       appBar: AppBar(title: Text('Hello ${name ?? ''}')),
       floatingActionButton: FloatingActionButton(
@@ -26,7 +43,7 @@ class Foo extends State { // TODO: The macro could add "extends State implements
         },
       ),
       body: Center(
-        child: Text('Count: $_count'),
+        child: Text('Count: ${(startValue ?? 0) + _count}'),
       ),
     );
   }
