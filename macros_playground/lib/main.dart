@@ -6,9 +6,7 @@ void main() {
   runApp(const App(name: 'Michael'));
 }
 
-@Stateless() // TODO: would be nice if this could be @statelessWidget instead.
-// TODO: fix lint, https://github.com/dart-lang/linter/issues/4936
-// ignore: use_key_in_widget_constructors
+@Stateless()
 class App extends StatelessWidget { // TODO: The macro should add "extends StatelessWidget", https://github.com/dart-lang/sdk/issues/55425
   @Input() String? get name;
 
@@ -23,7 +21,7 @@ class App extends StatelessWidget { // TODO: The macro should add "extends State
   }
 }
 
-@Stateful() // TODO: would be nice if this could be @statefulWidget instead.
+@Stateful()
 class Counter extends State { // TODO: The macro should add "extends State", https://github.com/dart-lang/sdk/issues/55425
   // TODO: How to specify default values and initializer asserts?
   @Input() String? get name;
