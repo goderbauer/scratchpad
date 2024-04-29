@@ -60,13 +60,19 @@ macro class Stateful implements ClassTypesMacro, ClassDeclarationsMacro, ClassDe
       Uri.parse('package:flutter/src/foundation/key.dart'),
       'Key',
     );
+    List<Object> toConstructorArg(MethodDeclaration input) {
+      final Iterable<ExpressionCode> positionalArgs = _inputAnnotation(input).positionalArguments;
+      if (positionalArgs.isNotEmpty) {
+        return ['  ', input.returnType.code, ' ${input.identifier.name},\n'];
+      }
+      return ['  required ', input.returnType.code, ' ${input.identifier.name},\n'];
+    }
     final Iterable<MethodDeclaration> inputs = await _inputs(builder, clazz);
     builder.declareInType(DeclarationCode.fromParts([
       'const factory $stateClassName({\n',
       '  ', key, '? key,\n', // TODO: don't generate this if it is explicitly included in inputs below.
-      for (MethodDeclaration input in inputs) ...[
-        '  ', input.returnType.code, ' ${input.identifier.name},\n'
-      ],
+      for (MethodDeclaration input in inputs)
+        ...toConstructorArg(input),
       '}) = $statefulWidgetClassName;'
     ]));
     // noSuchMethod
@@ -106,12 +112,18 @@ macro class InternalStateful implements ClassDeclarationsMacro {
       Uri.parse('package:flutter/src/foundation/key.dart'),
       'Key',
     );
+    List<Object> toConstructorArg(MethodDeclaration input) {
+      final Iterable<ExpressionCode> positionalArgs = _inputAnnotation(input).positionalArguments;
+      if (positionalArgs.isNotEmpty) {
+        return ['  this.${input.identifier.name} = ', positionalArgs.first, ',\n'];
+      }
+      return ['  required this.${input.identifier.name},\n'];
+    }
     builder.declareInType(DeclarationCode.fromParts([
       'const ${clazz.identifier.name}({\n',
       '  ', key, '? key,\n', // TODO: don't generate this if it is explicitly included in inputs below.
-      for (MethodDeclaration input in inputs) ...[
-        '  this.${input.identifier.name},\n'
-      ],
+      for (MethodDeclaration input in inputs)
+        ...toConstructorArg(input),
       '}) : super(key: key);\n' // TODO: Use super.key, https://github.com/dart-lang/sdk/issues/55428
     ]));
     // Fields.
@@ -142,17 +154,23 @@ macro class Stateless implements ClassDeclarationsMacro, ClassDefinitionMacro {
   @override
   FutureOr<void> buildDeclarationsForClass(ClassDeclaration clazz, MemberDeclarationBuilder builder) async {
     final Iterable<MethodDeclaration> inputs = await _inputs(builder, clazz);
-    //Constructor.
+    // Constructor.
     final Identifier key = await builder.resolveIdentifier(
       Uri.parse('package:flutter/src/foundation/key.dart'),
       'Key',
     );
+    List<Object> toConstructorArg(MethodDeclaration input) {
+      final Iterable<ExpressionCode> positionalArgs = _inputAnnotation(input).positionalArguments;
+      if (positionalArgs.isNotEmpty) {
+        return ['  ', input.returnType.code, ' ${input.identifier.name} = ', positionalArgs.first, ',\n'];
+      }
+      return ['  required ', input.returnType.code, ' ${input.identifier.name},\n'];
+    }
     builder.declareInType(DeclarationCode.fromParts([
       'const ${clazz.identifier.name}({\n',
       '  ', key, '? key,\n', // TODO: don't generate this if it is explicitly included in inputs below.
-      for (MethodDeclaration input in inputs) ...[
-        '  ', input.returnType.code, ' ${input.identifier.name},\n'
-      ],
+      for (MethodDeclaration input in inputs)
+        ...toConstructorArg(input),
       '}) : ',
       for (MethodDeclaration input in inputs) ...[
         '  _${input.identifier.name} = ${input.identifier.name},\n'
@@ -181,7 +199,7 @@ macro class Stateless implements ClassDeclarationsMacro, ClassDefinitionMacro {
 }
 
 class Input {
-  const Input();
+  const Input([Object? defaultValue]);
 }
 
 Future<void> _buildNoSuchMethod(MemberDeclarationBuilder builder) async {
@@ -195,6 +213,11 @@ Future<void> _buildNoSuchMethod(MemberDeclarationBuilder builder) async {
 }
 
 Future<Iterable<MethodDeclaration>> _inputs(DeclarationPhaseIntrospector introspector, ClassDeclaration clazz) async {
-  // TODO: check for the @input annotation and that its public
+  // TODO: check for the @Input annotation and that its public.
   return (await introspector.methodsOf(clazz)).where((MethodDeclaration method) => method.isGetter);
+}
+
+ConstructorMetadataAnnotation _inputAnnotation(MethodDeclaration input) {
+  // TODO: check that the metadata is actually an Input annotation.
+  return input.metadata.single as ConstructorMetadataAnnotation;
 }
