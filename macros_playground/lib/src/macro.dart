@@ -22,18 +22,14 @@ macro class Stateful implements ClassTypesMacro, ClassDeclarationsMacro, ClassDe
   /// [InternalStateful] macro.
   @override
   FutureOr<void> buildTypesForClass(ClassDeclaration clazz, ClassTypeBuilder builder) async {
-    // Add "implements Widget" to State subclass.
-    final Identifier widget = await builder.resolveIdentifier(
-      Uri.parse('package:flutter/src/widgets/framework.dart'),
-      'Widget',
-    );
-    builder.appendInterfaces([NamedTypeAnnotationCode(name: widget)]);
-    // Create StatefulWidget subclass.
-    final String statefulWidgetClassName = _toStatefulWidgetClassName(clazz);
+    // Add "implements StatefulWidget" to State subclass.
     final Identifier statefulWidget = await builder.resolveIdentifier(
       Uri.parse('package:flutter/src/widgets/framework.dart'),
       'StatefulWidget',
     );
+    builder.appendInterfaces([NamedTypeAnnotationCode(name: statefulWidget)]);
+    // Create StatefulWidget subclass.
+    final String statefulWidgetClassName = _toStatefulWidgetClassName(clazz);
     final Identifier statefulWidgetMacro = await builder.resolveIdentifier(
       Uri.parse('package:macros_playground/src/macro.dart'),
       'InternalStateful',

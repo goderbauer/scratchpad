@@ -22,9 +22,9 @@ class App extends StatelessWidget { // TODO: The macro should add "extends State
 }
 
 @Stateful()
-class Counter extends State { // TODO: The macro should add "extends State", https://github.com/dart-lang/sdk/issues/55425
+class Counter extends State<Counter> { // TODO: The macro should add "extends State", https://github.com/dart-lang/sdk/issues/55425
   // TODO: How to specify initializer asserts?
-  @Input() String? get name;
+  @Input() String get name;
   @Input(0) int get startValue;
 
   int _count = 0;
