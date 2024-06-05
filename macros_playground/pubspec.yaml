@@ -17,7 +17,7 @@ dependency_overrides:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/macros
-      ref: 3.5.0-219.0.dev
+      ref: 3.5.0-222.0.dev
 
 dev_dependencies:
   flutter_test:
