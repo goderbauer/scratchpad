@@ -7,7 +7,7 @@ void main() {
 }
 
 @Stateless()
-class App extends StatelessWidget { // TODO: The macro should add "extends StatelessWidget", https://github.com/dart-lang/sdk/issues/55425
+class App {
   @Input() String get name;
 
   @override
@@ -22,7 +22,7 @@ class App extends StatelessWidget { // TODO: The macro should add "extends State
 }
 
 @Stateful()
-class Counter extends State<Counter> { // TODO: The macro should add "extends State", https://github.com/dart-lang/sdk/issues/55425
+class Counter {
   // TODO: How to specify initializer asserts?
   @Input() String get name;
   @Input(0) int get startValue;

@@ -13,6 +13,7 @@ import 'package:macros/macros.dart';
 macro class Stateful implements ClassTypesMacro, ClassDeclarationsMacro, ClassDefinitionMacro {
   const Stateful();
 
+  // TODO: The name should be private.
   String _toStatefulWidgetClassName(ClassDeclaration clazz) => '\$${clazz.identifier.name}';
 
   /// Introduces the StatefulWidget subclass (without any body) and adds
@@ -22,6 +23,18 @@ macro class Stateful implements ClassTypesMacro, ClassDeclarationsMacro, ClassDe
   /// [InternalStateful] macro.
   @override
   FutureOr<void> buildTypesForClass(ClassDeclaration clazz, ClassTypeBuilder builder) async {
+    // Adds "extends State<Foo>".
+    final Identifier state = await builder.resolveIdentifier(
+      Uri.parse('package:flutter/src/widgets/framework.dart'),
+      'State',
+    );
+    builder.extendsType(
+      NamedTypeAnnotationCode(
+        name: state,
+        typeArguments: [NamedTypeAnnotationCode(name: clazz.identifier)],
+      ),
+    );
+
     // Add "implements StatefulWidget" to State subclass.
     final Identifier statefulWidget = await builder.resolveIdentifier(
       Uri.parse('package:flutter/src/widgets/framework.dart'),
@@ -153,8 +166,7 @@ macro class Stateless implements ClassTypesMacro, ClassDeclarationsMacro, ClassD
       Uri.parse('package:flutter/src/widgets/framework.dart'),
       'StatelessWidget',
     );
-    // TODO: This API does not work yet, https://github.com/dart-lang/sdk/issues/55931
-    // builder.extendsType(NamedTypeAnnotationCode(name: statelessWidget));
+    builder.extendsType(NamedTypeAnnotationCode(name: statelessWidget));
   }
 
   /// Adds constructors and fields for @Input's to annotated StatelessWidget subclass.
