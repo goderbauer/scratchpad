@@ -4,7 +4,7 @@ publish_to: 'none'
 version: 0.1.0
 
 environment:
-  sdk: ^3.6.0-149.3.beta
+  sdk: ^3.6.0-218.0.dev
 
 dependencies:
   flutter:
@@ -16,7 +16,7 @@ dependency_overrides:
     git:
       url: https://github.com/dart-lang/sdk.git
       path: pkg/macros
-      ref: 3.6.0-149.0.dev
+      ref: 3.6.0-218.0.dev
 
 dev_dependencies:
   flutter_test:
