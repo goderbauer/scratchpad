@@ -1,0 +1,50 @@
+name: bc
+description: A sample command-line application.
+version: 1.0.0
+
+environment:
+  sdk: ^3.9.0-117.0.dev
+
+dependencies:
+  dart2bytecode: any
+  path: any
+
+  # dependencies of compass app:
+  cached_network_image: ^3.4.1
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_svg: ^2.0.16
+  freezed_annotation: ^2.4.4
+  go_router: ^14.6.2
+  google_fonts: ^6.2.1
+  intl: any
+  json_annotation: ^4.9.0
+  logging: ^1.3.0
+  provider: ^6.1.2
+  share_plus: ^10.1.3
+  shared_preferences: ^2.3.5
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.24.0
+
+
+dependency_overrides:
+  dynamic_modules:
+    path: /Users/goderbauer/dev/flutter/engine/src/flutter/third_party/dart/pkg/dynamic_modules
+  dart2bytecode:
+    path: /Users/goderbauer/dev/flutter/engine/src/flutter/third_party/dart/pkg/dart2bytecode
+  vm:
+    path: /Users/goderbauer/dev/flutter/engine/src/flutter/third_party/dart/pkg/vm
+  build_integration:
+    path: /Users/goderbauer/dev/flutter/engine/src/flutter/third_party/dart/pkg/build_integration
+  kernel:
+    path: /Users/goderbauer/dev/flutter/engine/src/flutter/third_party/dart/pkg/kernel
+  front_end:
+    path: /Users/goderbauer/dev/flutter/engine/src/flutter/third_party/dart/pkg/front_end
+  _fe_analyzer_shared:
+    path: /Users/goderbauer/dev/flutter/engine/src/flutter/third_party/dart/pkg/_fe_analyzer_shared
+  record_use:
+    path: /Users/goderbauer/dev/flutter/engine/src/flutter/third_party/dart/pkg/record_use
