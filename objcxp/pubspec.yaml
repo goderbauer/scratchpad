@@ -9,11 +9,18 @@ environment:
 # Add regular dependencies here.
 dependencies:
   path: ^1.9.0
+  objective_c: ^8.1.0
+  ffi: ^2.1.4
 
 dev_dependencies:
-  ffigen:
-    path: /Users/goderbauer/dev/native/pkgs/ffigen
+  ffigen: ^19.1.0
   lints: ^6.0.0
   test: ^1.25.6
+
+dependency_overrides:
+  ffigen:
+    path: /Users/goderbauer/dev/native/pkgs/ffigen
   objective_c:
     path: /Users/goderbauer/dev/native/pkgs/objective_c
+  ffi:
+    path: /Users/goderbauer/dev/native/pkgs/ffi
