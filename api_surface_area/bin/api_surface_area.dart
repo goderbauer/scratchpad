@@ -23,13 +23,13 @@ Future<void> main(List<String> args) async {
     exit(1);
   }
 
-  if (results.rest.isEmpty || results.rest.length > 2) {
+  if (results.rest.isEmpty) {
     _printUsage(parser);
     exit(1);
   }
 
   final rootPath = p.canonicalize(results.rest[0]);
-  final className = results.rest.length == 2 ? results.rest[1] : null;
+  final classNames = results.rest.skip(1).toList();
   final dotFile = results['dot-file'] as String?;
   final hideDart = results['hide-dart'] as bool;
 
@@ -44,14 +44,16 @@ Future<void> main(List<String> args) async {
   final session = context.currentSession;
 
   final roots = <Element>[];
-  if (className != null) {
-    final classElement = await _findClassElement(context, session, className);
-    if (classElement == null) {
-      print('Error: Class "$className" not found in the codebase.');
-      exit(1);
+  if (classNames.isNotEmpty) {
+    for (final name in classNames) {
+      final classElement = await _findClassElement(context, session, name);
+      if (classElement == null) {
+        print('Error: Class "$name" not found in the codebase.');
+        exit(1);
+      }
+      print('Found class "${classElement.displayName}" in ${classElement.library.uri}');
+      roots.add(classElement);
     }
-    print('Found class "${classElement.displayName}" in ${classElement.library.uri}');
-    roots.add(classElement);
   } else {
     print('Collecting all public types in the package...');
     roots.addAll(await _findAllPublicElements(context, session));
@@ -74,6 +76,12 @@ Future<void> main(List<String> args) async {
   if (roots.length == 1) {
     print('\nExposed type graph:');
     _printGraph(roots.first, collector.graph);
+  } else if (classNames.isNotEmpty) {
+    print('\nExposed type graphs:');
+    for (final root in roots) {
+      print('\nGraph for ${root.displayName}:');
+      _printGraph(root, collector.graph);
+    }
   } else {
     print('\nFull package mode: skipping graph print (too large).');
     print('Use the --dot-file option to visualize the full relationship graph.');
@@ -119,7 +127,7 @@ Future<void> main(List<String> args) async {
 }
 
 void _printUsage(ArgParser parser) {
-  print('Usage: api_surface_area <path_to_codebase> [class_name] [options]');
+  print('Usage: api_surface_area <path_to_codebase> [class_name1 class_name2 ...] [options]');
   print(parser.usage);
 }
 
