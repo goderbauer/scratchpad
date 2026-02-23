@@ -40,9 +40,20 @@ Future<void> main(List<String> args) async {
 
   final results = collector.exposedElements.toList();
   final grouped = <String, List<Element>>{};
+  final packageCounts = <String, int>{};
+
   for (final element in results) {
     final libraryUri = element.library?.uri.toString() ?? 'unknown';
     grouped.putIfAbsent(libraryUri, () => []).add(element);
+
+    final packageName = _getPackageName(libraryUri);
+    packageCounts[packageName] = (packageCounts[packageName] ?? 0) + 1;
+  }
+
+  print('\nSummary by package:');
+  final sortedPackages = packageCounts.keys.toList()..sort();
+  for (final pkg in sortedPackages) {
+    print('- $pkg: ${packageCounts[pkg]} types');
   }
 
   final sortedLibraries = grouped.keys.toList()..sort();
@@ -56,6 +67,18 @@ Future<void> main(List<String> args) async {
       print('- ${element.displayName}');
     }
   }
+}
+
+String _getPackageName(String uri) {
+  if (uri.startsWith('package:')) {
+    final parts = uri.split('/');
+    if (parts.isNotEmpty) {
+      return parts[0].replaceFirst('package:', '');
+    }
+  } else if (uri.startsWith('dart:')) {
+    return 'dart';
+  }
+  return 'unknown';
 }
 
 Future<InterfaceElement?> _findClassElement(
