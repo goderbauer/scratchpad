@@ -11,7 +11,8 @@ import 'package:path/path.dart' as p;
 Future<void> main(List<String> args) async {
   final parser = ArgParser()
     ..addOption('dot-file', abbr: 'd', help: 'Path to output a DOT file.')
-    ..addFlag('hide-dart', help: 'Hide types from the dart: SDK in the graph.', negatable: false);
+    ..addFlag('hide-dart',
+        help: 'Hide types from the dart: SDK in the graph.', negatable: false);
 
   ArgResults results;
   try {
@@ -22,13 +23,13 @@ Future<void> main(List<String> args) async {
     exit(1);
   }
 
-  if (results.rest.length != 2) {
+  if (results.rest.isEmpty || results.rest.length > 2) {
     _printUsage(parser);
     exit(1);
   }
 
   final rootPath = p.canonicalize(results.rest[0]);
-  final className = results.rest[1];
+  final className = results.rest.length == 2 ? results.rest[1] : null;
   final dotFile = results['dot-file'] as String?;
   final hideDart = results['hide-dart'] as bool;
 
@@ -42,23 +43,44 @@ Future<void> main(List<String> args) async {
   final context = collection.contextFor(rootPath);
   final session = context.currentSession;
 
-  final classElement = await _findClassElement(context, session, className);
-  if (classElement == null) {
-    print('Error: Class "$className" not found in the codebase.');
-    exit(1);
+  final roots = <Element>[];
+  if (className != null) {
+    final classElement = await _findClassElement(context, session, className);
+    if (classElement == null) {
+      print('Error: Class "$className" not found in the codebase.');
+      exit(1);
+    }
+    print('Found class "${classElement.displayName}" in ${classElement.library.uri}');
+    roots.add(classElement);
+  } else {
+    print('Collecting all public types in the package...');
+    roots.addAll(await _findAllPublicElements(context, session));
+    print('Found ${roots.length} public types to start from.');
   }
 
-  print('Found class "${classElement.displayName}" in ${classElement.library.uri}');
   print('Collecting exposed types transitively...');
 
   final collector = _TypeCollector(hideDart: hideDart);
-  collector.collect(classElement.thisType, null);
+  for (final root in roots) {
+    if (root is InterfaceElement) {
+      collector.collect(root.thisType, null);
+    } else if (root is TypeAliasElement) {
+      collector.collect(root.aliasedType, null);
+    } else {
+      collector.processElement(root, null);
+    }
+  }
 
-  print('\nExposed type graph:');
-  _printGraph(classElement, collector.graph);
+  if (roots.length == 1) {
+    print('\nExposed type graph:');
+    _printGraph(roots.first, collector.graph);
+  } else {
+    print('\nFull package mode: skipping graph print (too large).');
+    print('Use the --dot-file option to visualize the full relationship graph.');
+  }
 
   if (dotFile != null) {
-    _writeDotFile(dotFile, classElement, collector.graph);
+    _writeDotFile(dotFile, roots, collector.graph);
   }
 
   final exposedElements = collector.visitedElements
@@ -97,7 +119,7 @@ Future<void> main(List<String> args) async {
 }
 
 void _printUsage(ArgParser parser) {
-  print('Usage: api_surface_area <path_to_codebase> <class_name> [options]');
+  print('Usage: api_surface_area <path_to_codebase> [class_name] [options]');
   print(parser.usage);
 }
 
@@ -123,7 +145,8 @@ void _printGraph(Element root, Map<Element, Set<Element>> graph) {
   printNode(root, 0);
 }
 
-void _writeDotFile(String filePath, Element root, Map<Element, Set<Element>> graph) {
+void _writeDotFile(
+    String filePath, List<Element> roots, Map<Element, Set<Element>> graph) {
   final sb = StringBuffer();
   sb.writeln('digraph G {');
   sb.writeln('  rankdir=LR;');
@@ -147,7 +170,9 @@ void _writeDotFile(String filePath, Element root, Map<Element, Set<Element>> gra
     }
   }
 
-  traverse(root);
+  for (final root in roots) {
+    traverse(root);
+  }
   sb.writeln('}');
   File(filePath).writeAsStringSync(sb.toString());
   print('\nDOT file written to $filePath');
@@ -163,6 +188,36 @@ String _getPackageName(String uri) {
     return 'dart';
   }
   return 'unknown';
+}
+
+Future<List<Element>> _findAllPublicElements(
+    AnalysisContext context, AnalysisSession session) async {
+  final elements = <Element>[];
+  final rootPath = context.contextRoot.root.path;
+  final testPath = p.join(rootPath, 'test');
+
+  for (final filePath in context.contextRoot.analyzedFiles()) {
+    if (!filePath.endsWith('.dart')) continue;
+    if (p.isWithin(testPath, filePath)) continue;
+
+    final unitResult = await session.getUnitElement(filePath);
+    if (unitResult is! UnitElementResult) continue;
+
+    final library = unitResult.fragment.element;
+    for (final clazz in library.classes.where((e) => !e.isPrivate)) {
+      elements.add(clazz);
+    }
+    for (final mixin in library.mixins.where((e) => !e.isPrivate)) {
+      elements.add(mixin);
+    }
+    for (final enum_ in library.enums.where((e) => !e.isPrivate)) {
+      elements.add(enum_);
+    }
+    for (final typeAlias in library.typeAliases.where((e) => !e.isPrivate)) {
+      elements.add(typeAlias);
+    }
+  }
+  return elements;
 }
 
 Future<InterfaceElement?> _findClassElement(
@@ -181,7 +236,7 @@ Future<InterfaceElement?> _findClassElement(
       if (mixin.name == className) return mixin;
     }
     for (final enum_ in library.enums) {
-       if (enum_.name == className) return enum_;
+      if (enum_.name == className) return enum_;
     }
   }
   return null;
@@ -199,18 +254,10 @@ class _TypeCollector {
 
     final element = type.element;
     if (element != null && !element.isPrivate) {
-      final libraryUri = element.library?.uri.toString() ?? 'unknown';
-      final isDart = libraryUri.startsWith('dart:');
-
       if (element is InterfaceElement ||
           element is TypeAliasElement ||
           element is EnumElement) {
-        if (parent != null && parent != element) {
-          if (!hideDart || !isDart) {
-            graph.putIfAbsent(parent, () => {}).add(element);
-          }
-        }
-        _processElement(element);
+        processElement(element, parent);
       }
     }
 
@@ -233,7 +280,15 @@ class _TypeCollector {
     }
   }
 
-  void _processElement(Element element) {
+  void processElement(Element element, Element? parent) {
+    if (parent != null && parent != element) {
+      final libraryUri = element.library?.uri.toString() ?? 'unknown';
+      final isDart = libraryUri.startsWith('dart:');
+      if (!hideDart || !isDart) {
+        graph.putIfAbsent(parent, () => {}).add(element);
+      }
+    }
+
     if (visitedElements.contains(element)) return;
     visitedElements.add(element);
 
