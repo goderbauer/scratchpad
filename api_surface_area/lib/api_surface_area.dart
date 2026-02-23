@@ -1,6 +1,14 @@
 class RootClass {
   ExposedClass getExposed() => ExposedClass();
   void doSomething(AnotherExposedClass param) {}
+
+  // This private field uses a public class.
+  // The tool should NOT include InternallyUsedPublicClass when analyzing RootClass.
+  final InternallyUsedPublicClass _internal = InternallyUsedPublicClass();
+}
+
+class InternallyUsedPublicClass {
+  void doWork() {}
 }
 
 class ExposedClass {

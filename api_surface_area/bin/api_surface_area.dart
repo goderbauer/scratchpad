@@ -18,7 +18,7 @@ Future<void> main(List<String> args) async {
   try {
     results = parser.parse(args);
   } catch (e) {
-    print('Error: $e');
+    stderr.writeln('Error: $e');
     _printUsage(parser);
     exit(1);
   }
@@ -34,7 +34,7 @@ Future<void> main(List<String> args) async {
   final hideDart = results['hide-dart'] as bool;
 
   if (!Directory(rootPath).existsSync()) {
-    print('Error: Directory does not exist: $rootPath');
+    stderr.writeln('Error: Directory does not exist: $rootPath');
     exit(1);
   }
 
@@ -48,7 +48,7 @@ Future<void> main(List<String> args) async {
     for (final name in classNames) {
       final classElement = await _findClassElement(context, session, name);
       if (classElement == null) {
-        print('Error: Class "$name" not found in the codebase.');
+        stderr.writeln('Error: Class "$name" not found in the codebase.');
         exit(1);
       }
       print('Found class "${classElement.displayName}" in ${classElement.library.uri}');
