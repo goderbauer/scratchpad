@@ -5,16 +5,32 @@ import 'package:analyzer/dart/analysis/results.dart';
 import 'package:analyzer/dart/analysis/session.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/dart/element/type.dart';
+import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 Future<void> main(List<String> args) async {
-  if (args.length != 2) {
-    print('Usage: api_surface_area <path_to_codebase> <class_name>');
+  final parser = ArgParser()
+    ..addOption('dot-file', abbr: 'd', help: 'Path to output a DOT file.')
+    ..addFlag('hide-dart', help: 'Hide types from the dart: SDK in the graph.', negatable: false);
+
+  ArgResults results;
+  try {
+    results = parser.parse(args);
+  } catch (e) {
+    print('Error: $e');
+    _printUsage(parser);
     exit(1);
   }
 
-  final rootPath = p.canonicalize(args[0]);
-  final className = args[1];
+  if (results.rest.length != 2) {
+    _printUsage(parser);
+    exit(1);
+  }
+
+  final rootPath = p.canonicalize(results.rest[0]);
+  final className = results.rest[1];
+  final dotFile = results['dot-file'] as String?;
+  final hideDart = results['hide-dart'] as bool;
 
   if (!Directory(rootPath).existsSync()) {
     print('Error: Directory does not exist: $rootPath');
@@ -35,14 +51,25 @@ Future<void> main(List<String> args) async {
   print('Found class "${classElement.displayName}" in ${classElement.library.uri}');
   print('Collecting exposed types transitively...');
 
-  final collector = _TypeCollector();
-  collector.collect(classElement.thisType);
+  final collector = _TypeCollector(hideDart: hideDart);
+  collector.collect(classElement.thisType, null);
 
-  final results = collector.exposedElements.toList();
+  print('\nExposed type graph:');
+  _printGraph(classElement, collector.graph);
+
+  if (dotFile != null) {
+    _writeDotFile(dotFile, classElement, collector.graph);
+  }
+
+  final exposedElements = collector.visitedElements
+      .where((e) =>
+          e is InterfaceElement || e is TypeAliasElement || e is EnumElement)
+      .toList();
+
   final grouped = <String, List<Element>>{};
   final packageCounts = <String, int>{};
 
-  for (final element in results) {
+  for (final element in exposedElements) {
     final libraryUri = element.library?.uri.toString() ?? 'unknown';
     grouped.putIfAbsent(libraryUri, () => []).add(element);
 
@@ -67,6 +94,63 @@ Future<void> main(List<String> args) async {
       print('- ${element.displayName}');
     }
   }
+}
+
+void _printUsage(ArgParser parser) {
+  print('Usage: api_surface_area <path_to_codebase> <class_name> [options]');
+  print(parser.usage);
+}
+
+void _printGraph(Element root, Map<Element, Set<Element>> graph) {
+  final visited = <Element>{};
+  void printNode(Element node, int indent) {
+    final prefix = '  ' * indent;
+    final libraryUri = node.library?.uri.toString() ?? 'unknown';
+    if (visited.contains(node)) {
+      print('$prefix- ${node.displayName} ($libraryUri) [already listed]');
+      return;
+    }
+    visited.add(node);
+    print('$prefix- ${node.displayName} ($libraryUri)');
+
+    final children = graph[node]?.toList() ?? [];
+    children.sort((a, b) => a.displayName.compareTo(b.displayName));
+    for (final child in children) {
+      printNode(child, indent + 1);
+    }
+  }
+
+  printNode(root, 0);
+}
+
+void _writeDotFile(String filePath, Element root, Map<Element, Set<Element>> graph) {
+  final sb = StringBuffer();
+  sb.writeln('digraph G {');
+  sb.writeln('  rankdir=LR;');
+  sb.writeln('  node [shape=box, fontname="Arial"];');
+
+  final visited = <Element>{};
+  void traverse(Element node) {
+    if (visited.contains(node)) return;
+    visited.add(node);
+
+    final nodeName = node.displayName;
+    final libraryUri = node.library?.uri.toString() ?? 'unknown';
+    // Escape quotes for DOT
+    final label = '$nodeName\\n($libraryUri)'.replaceAll('"', '\\"');
+    sb.writeln('  n${node.id} [label="$label"];');
+
+    final children = graph[node] ?? {};
+    for (final child in children) {
+      sb.writeln('  n${node.id} -> n${child.id};');
+      traverse(child);
+    }
+  }
+
+  traverse(root);
+  sb.writeln('}');
+  File(filePath).writeAsStringSync(sb.toString());
+  print('\nDOT file written to $filePath');
 }
 
 String _getPackageName(String uri) {
@@ -104,81 +188,90 @@ Future<InterfaceElement?> _findClassElement(
 }
 
 class _TypeCollector {
-  final Set<Element> exposedElements = {};
-  final Set<Element> _visited = {};
+  final bool hideDart;
+  final Map<Element, Set<Element>> graph = {};
+  final Set<Element> visitedElements = {};
 
-  void collect(DartType? type) {
+  _TypeCollector({required this.hideDart});
+
+  void collect(DartType? type, Element? parent) {
     if (type == null) return;
 
+    final element = type.element;
+    if (element != null && !element.isPrivate) {
+      final libraryUri = element.library?.uri.toString() ?? 'unknown';
+      final isDart = libraryUri.startsWith('dart:');
+
+      if (element is InterfaceElement ||
+          element is TypeAliasElement ||
+          element is EnumElement) {
+        if (parent != null && parent != element) {
+          if (!hideDart || !isDart) {
+            graph.putIfAbsent(parent, () => {}).add(element);
+          }
+        }
+        _processElement(element);
+      }
+    }
+
     if (type is InterfaceType) {
-      _processElement(type.element);
       for (final arg in type.typeArguments) {
-        collect(arg);
+        collect(arg, parent);
       }
     } else if (type is FunctionType) {
-      collect(type.returnType);
+      collect(type.returnType, parent);
       for (final param in type.formalParameters) {
-        collect(param.type);
+        collect(param.type, parent);
       }
-    } else if (type is TypeParameterType) {
-      _processElement(type.element);
-      collect(type.bound);
     } else if (type is RecordType) {
       for (final field in type.positionalFields) {
-        collect(field.type);
+        collect(field.type, parent);
       }
       for (final field in type.namedFields) {
-        collect(field.type);
+        collect(field.type, parent);
       }
     }
   }
 
-  void _processElement(Element? element) {
-    if (element == null) return;
-    if (_visited.contains(element)) return;
-    _visited.add(element);
-
-    if (element.isPrivate) return;
-
-    // We consider it exposed if it's a named type (Class, Enum, Mixin, Typedef, etc.)
-    if (element is InterfaceElement || element is TypeAliasElement || element is EnumElement) {
-       exposedElements.add(element);
-    }
+  void _processElement(Element element) {
+    if (visitedElements.contains(element)) return;
+    visitedElements.add(element);
 
     if (element is InterfaceElement) {
       // Methods
       for (final method in element.methods.where((m) => !m.isPrivate)) {
-        collect(method.returnType);
+        collect(method.returnType, element);
         for (final param in method.formalParameters) {
-          collect(param.type);
+          collect(param.type, element);
         }
       }
       // Fields
       for (final field in element.fields.where((f) => !f.isPrivate)) {
-        collect(field.type);
+        collect(field.type, element);
       }
       // Getters
       for (final getter in element.getters.where((g) => !g.isPrivate)) {
-        collect(getter.returnType);
+        collect(getter.returnType, element);
       }
       // Setters
       for (final setter in element.setters.where((s) => !s.isPrivate)) {
         for (final param in setter.formalParameters) {
-          collect(param.type);
+          collect(param.type, element);
         }
       }
       // Constructors
-      for (final constructor in element.constructors.where((c) => !c.isPrivate)) {
+      for (final constructor in
+          element.constructors.where((c) => !c.isPrivate)) {
         for (final param in constructor.formalParameters) {
-          collect(param.type);
+          collect(param.type, element);
         }
       }
       // Supertypes
       for (final superType in element.allSupertypes) {
-        collect(superType);
+        collect(superType, element);
       }
     } else if (element is TypeAliasElement) {
-      collect(element.aliasedType);
+      collect(element.aliasedType, element);
     }
   }
 }
