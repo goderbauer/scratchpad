@@ -73,20 +73,6 @@ Future<void> main(List<String> args) async {
     }
   }
 
-  if (roots.length == 1) {
-    print('\nExposed type graph:');
-    _printGraph(roots.first, collector.graph);
-  } else if (classNames.isNotEmpty) {
-    print('\nExposed type graphs:');
-    for (final root in roots) {
-      print('\nGraph for ${root.displayName}:');
-      _printGraph(root, collector.graph);
-    }
-  } else {
-    print('\nFull package mode: skipping graph print (too large).');
-    print('Use the --dot-file option to visualize the full relationship graph.');
-  }
-
   if (dotFile != null) {
     _writeDotFile(dotFile, roots, collector.graph);
   }
@@ -129,28 +115,6 @@ Future<void> main(List<String> args) async {
 void _printUsage(ArgParser parser) {
   print('Usage: api_surface_area <path_to_codebase> [class_name1 class_name2 ...] [options]');
   print(parser.usage);
-}
-
-void _printGraph(Element root, Map<Element, Set<Element>> graph) {
-  final visited = <Element>{};
-  void printNode(Element node, int indent) {
-    final prefix = '  ' * indent;
-    final libraryUri = node.library?.uri.toString() ?? 'unknown';
-    if (visited.contains(node)) {
-      print('$prefix- ${node.displayName} ($libraryUri) [already listed]');
-      return;
-    }
-    visited.add(node);
-    print('$prefix- ${node.displayName} ($libraryUri)');
-
-    final children = graph[node]?.toList() ?? [];
-    children.sort((a, b) => a.displayName.compareTo(b.displayName));
-    for (final child in children) {
-      printNode(child, indent + 1);
-    }
-  }
-
-  printNode(root, 0);
 }
 
 void _writeDotFile(
