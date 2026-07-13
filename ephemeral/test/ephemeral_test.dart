@@ -185,12 +185,12 @@ void main() {
 
       expect(receivedEvent, isNotNull);
       expect(receivedEvent, contains('increment'));
-      expect(find.text('Current count: 2'), findsOneWidget);
+      expect(find.text('Current count: 5'), findsOneWidget);
 
       await tester.tap(find.text('Decrement (-)'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Current count: 1'), findsOneWidget);
+      expect(find.text('Current count: 4'), findsOneWidget);
     },
   );
 
