@@ -147,10 +147,28 @@ class _EphemeralState extends State<Ephemeral> {
         );
       }
 
-      // 2. Initialize JavascriptRuntime and evaluate top-level JS code
+      // 2. Initialize JavascriptRuntime and register 'rebuild' channel callback
       _jsRuntime?.dispose();
       final runtime = getJavascriptRuntime(xhr: widget.enableJsXHR);
       _jsRuntime = runtime;
+
+      runtime.onMessage('rebuild', (dynamic args) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+
+      runtime.evaluate('''
+(function() {
+  globalThis.rebuild = function() {
+    if (typeof sendMessage === 'function') {
+      sendMessage('rebuild', 'true');
+    }
+  };
+  globalThis.requestRebuild = globalThis.rebuild;
+  globalThis.requestRender = globalThis.rebuild;
+})()
+''');
 
       var evalResult = runtime.evaluate(jsCode);
       if (evalResult.isPromise ||
@@ -190,24 +208,14 @@ class _EphemeralState extends State<Ephemeral> {
     } catch (e) {
       eventData = ${jsonEncode(interaction)};
     }
-    var res = onUIEvent(eventData);
-    return res === true || res === 'true';
+    onUIEvent(eventData);
   }
-  return false;
 })()
 ''';
                     var resEval = currentRuntime.evaluate(evalCode);
                     if (resEval.isPromise ||
                         resEval.stringResult == '[object Promise]') {
-                      resEval = await currentRuntime.handlePromise(resEval);
-                    }
-
-                    final bool shouldRebuild =
-                        resEval.stringResult == 'true' ||
-                        resEval.stringResult == '1';
-
-                    if (shouldRebuild && mounted) {
-                      setState(() {});
+                      await currentRuntime.handlePromise(resEval);
                     }
                   } catch (e, st) {
                     debugPrint('Error executing onUIEvent in JS: $e\n$st');

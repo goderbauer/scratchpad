@@ -83,7 +83,10 @@ JSString render() {
   return jsonEncode(payload).toJS;
 }
 
-JSBoolean onUIEvent(JSAny? event) {
+@JS('rebuild')
+external void rebuild();
+
+void onUIEvent(JSAny? event) {
   final eventDart = event?.dartify();
   if (eventDart is Map) {
     final action = eventDart['action'];
@@ -91,14 +94,13 @@ JSBoolean onUIEvent(JSAny? event) {
       final actionName = action['name'];
       if (actionName == 'increment') {
         count += 5;
-        return true.toJS;
+        rebuild();
       } else if (actionName == 'decrement') {
         count--;
-        return true.toJS;
+        rebuild();
       }
     }
   }
-  return false.toJS;
 }
 
 void main() {

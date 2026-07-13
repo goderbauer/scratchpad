@@ -3667,14 +3667,13 @@
           t1 = J.getInterceptor$(actionName);
           if (t1.$eq(actionName, "increment")) {
             $.count = $.count + 5;
-            return true;
+            init.G.rebuild();
           } else if (t1.$eq(actionName, "decrement")) {
             $.count = $.count - 1;
-            return true;
+            init.G.rebuild();
           }
         }
       }
-      return false;
     },
     main() {
       var result, t2,
@@ -5629,7 +5628,7 @@
     typeUniverse: {eC: new Map(), tR: {}, eT: {}, tPV: {}, sEA: []},
     mangledGlobalNames: {int: "int", double: "double", num: "num", String: "String", bool: "bool", Null: "Null", List: "List", Object: "Object", Map: "Map", JSObject: "JSObject"},
     mangledNames: {},
-    types: ["~()", "~(~())", "@(@)", "Null(@)", "Null()", "~(Object?,Object?)", "~(@)", "@(@,String)", "@(String)", "Null(~())", "Null(Object,StackTrace)", "Object?(Object?)", "String()", "bool(Object?)"],
+    types: ["~()", "~(~())", "@(@)", "Null(@)", "Null()", "~(Object?,Object?)", "~(@)", "@(@,String)", "@(String)", "Null(~())", "Null(Object,StackTrace)", "Object?(Object?)", "String()", "~(Object?)"],
     interceptorsByTag: null,
     leafTags: null,
     arrayRti: Symbol("$ti")
