@@ -3801,16 +3801,10 @@
     _CounterAppState_build_closure: function _CounterAppState_build_closure(t0) {
       this.$this = t0;
     },
-    _CounterAppState_build__closure1: function _CounterAppState_build__closure1(t0) {
-      this.$this = t0;
-    },
-    _CounterAppState_build_closure0: function _CounterAppState_build_closure0(t0) {
-      this.$this = t0;
-    },
     _CounterAppState_build__closure0: function _CounterAppState_build__closure0(t0) {
       this.$this = t0;
     },
-    _CounterAppState_build_closure1: function _CounterAppState_build_closure1(t0) {
+    _CounterAppState_build_closure0: function _CounterAppState_build_closure0(t0) {
       this.$this = t0;
     },
     _CounterAppState_build__closure: function _CounterAppState_build__closure(t0) {
@@ -5973,25 +5967,12 @@
   A.CounterApp.prototype = {};
   A._CounterAppState.prototype = {
     build$1(context) {
-      var _this = this, _null = null,
+      var _null = null,
         t1 = type$.JSArray_Widget;
-      return new A.Card(new A.Column(A._setArrayType([B.Text_yEa, new A.Text("Current count: " + _this.count, "h3", _null), new A.Row(A._setArrayType([new A.Button(new A._CounterAppState_build_closure(_this), B.Text_kri, _null), new A.Button(new A._CounterAppState_build_closure0(_this), B.Text_Og1, _null)], t1), _null), new A.Button(new A._CounterAppState_build_closure1(_this), B.Text_Reset_null_null, _null)], t1), _null), _null);
+      return new A.Card(new A.Column(A._setArrayType([B.Text_yEa, new A.Text("Current count: " + this.count, "h3", _null), new A.Row(A._setArrayType([new A.Button(new A._CounterAppState_build_closure(this), B.Text_kri, _null), new A.Button(new A._CounterAppState_build_closure0(this), B.Text_Og1, _null)], t1), _null)], t1), _null), _null);
     }
   };
   A._CounterAppState_build_closure.prototype = {
-    call$0() {
-      var t1 = this.$this;
-      t1.setState$1(new A._CounterAppState_build__closure1(t1));
-    },
-    $signature: 0
-  };
-  A._CounterAppState_build__closure1.prototype = {
-    call$0() {
-      --this.$this.count;
-    },
-    $signature: 0
-  };
-  A._CounterAppState_build_closure0.prototype = {
     call$0() {
       var t1 = this.$this;
       t1.setState$1(new A._CounterAppState_build__closure0(t1));
@@ -6000,11 +5981,11 @@
   };
   A._CounterAppState_build__closure0.prototype = {
     call$0() {
-      this.$this.count += 5;
+      --this.$this.count;
     },
     $signature: 0
   };
-  A._CounterAppState_build_closure1.prototype = {
+  A._CounterAppState_build_closure0.prototype = {
     call$0() {
       var t1 = this.$this;
       t1.setState$1(new A._CounterAppState_build__closure(t1));
@@ -6013,7 +5994,7 @@
   };
   A._CounterAppState_build__closure.prototype = {
     call$0() {
-      this.$this.count = 0;
+      ++this.$this.count;
     },
     $signature: 0
   };
@@ -6064,7 +6045,7 @@
     _inheritMany(A.NativeTypedArrayOfDouble, [A.NativeFloat32List, A.NativeFloat64List]);
     _inheritMany(A.NativeTypedArrayOfInt, [A.NativeInt16List, A.NativeInt32List, A.NativeInt8List, A.NativeUint16List, A.NativeUint32List, A.NativeUint8ClampedList, A.NativeUint8List]);
     _inherit(A._TypeError, A._Error);
-    _inheritMany(A.Closure0Args, [A._AsyncRun__scheduleImmediateJsOverride_internalCallback, A._AsyncRun__scheduleImmediateWithSetImmediate_internalCallback, A._TimerImpl_internalCallback, A._Future__addListener_closure, A._Future__prependListeners_closure, A._Future__chainCoreFuture_closure, A._Future__asyncCompleteWithValue_closure, A._Future__asyncCompleteErrorObject_closure, A._Future__propagateToListeners_handleWhenCompleteCallback, A._Future__propagateToListeners_handleValueCallback, A._Future__propagateToListeners_handleError, A._RootZone_bindCallbackGuarded_closure, A._rootHandleError_closure, A._CounterAppState_build_closure, A._CounterAppState_build__closure1, A._CounterAppState_build_closure0, A._CounterAppState_build__closure0, A._CounterAppState_build_closure1, A._CounterAppState_build__closure]);
+    _inheritMany(A.Closure0Args, [A._AsyncRun__scheduleImmediateJsOverride_internalCallback, A._AsyncRun__scheduleImmediateWithSetImmediate_internalCallback, A._TimerImpl_internalCallback, A._Future__addListener_closure, A._Future__prependListeners_closure, A._Future__chainCoreFuture_closure, A._Future__asyncCompleteWithValue_closure, A._Future__asyncCompleteErrorObject_closure, A._Future__propagateToListeners_handleWhenCompleteCallback, A._Future__propagateToListeners_handleValueCallback, A._Future__propagateToListeners_handleError, A._RootZone_bindCallbackGuarded_closure, A._rootHandleError_closure, A._CounterAppState_build_closure, A._CounterAppState_build__closure0, A._CounterAppState_build_closure0, A._CounterAppState_build__closure]);
     _inherit(A._AsyncCompleter, A._Completer);
     _inherit(A._RootZone, A._Zone);
     _inherit(A._IdentityHashMap, A._HashMap);
@@ -6300,7 +6281,6 @@
     B.CounterApp_null = new A.CounterApp(null);
     B.JsonEncoder_null = new A.JsonEncoder(null);
     B.Text_Og1 = new A.Text("Increment (+)", null, null);
-    B.Text_Reset_null_null = new A.Text("Reset", null, null);
     B.Text_kri = new A.Text("Decrement (-)", null, null);
     B.Text_yEa = new A.Text("Counter App", "h2", null);
     B.Type_ByteBuffer_rqD = A.typeLiteral("ByteBuffer");

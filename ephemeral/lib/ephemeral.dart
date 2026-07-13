@@ -164,9 +164,7 @@ class _EphemeralState extends State<Ephemeral> {
 (function() {
   globalThis.rebuild = function() {
     if (typeof sendMessage === 'function') {
-      setTimeout(function() {
-        sendMessage('rebuild', 'true');
-      }, 0);
+      sendMessage('rebuild', 'true');
     }
   };
   globalThis.requestRebuild = globalThis.rebuild;
