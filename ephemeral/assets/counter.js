@@ -98,20 +98,11 @@ function render() {
 function onUIEvent(event) {
   var actionName = event && event.action && event.action.name;
   if (actionName === "increment") {
-    count++;
+    count = count + 5;
+    return true;
   } else if (actionName === "decrement") {
     count--;
+    return true;
   }
-  return [
-    {
-      "version": "v0.9",
-      "updateDataModel": {
-        "surfaceId": "counter",
-        "path": "/count",
-        "value": "Current count: " + count
-      }
-    }
-  ];
+  return false;
 }
-
-render();

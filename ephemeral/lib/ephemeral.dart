@@ -88,9 +88,9 @@ class Ephemeral extends StatefulWidget {
 
 class _EphemeralState extends State<Ephemeral> {
   JavascriptRuntime? _jsRuntime;
+  JsEvalResult? _initialEvalResult;
   SurfaceController? _surfaceController;
   StreamSubscription<ChatMessage>? _onSubmitSubscription;
-  String? _surfaceId;
 
   bool _isLoading = true;
   Object? _error;
@@ -127,7 +127,13 @@ class _EphemeralState extends State<Ephemeral> {
         jsCode = await bundle.loadString(widget.assetPath!);
       } else if (widget.url != null) {
         final client = widget.client ?? http.Client();
-        final response = await client.get(widget.url!);
+        final response = await client.get(
+          widget.url!,
+          headers: const {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+          },
+        );
         if (response.statusCode != 200) {
           throw Exception(
             'Failed to load JS file from ${widget.url} '
@@ -141,12 +147,11 @@ class _EphemeralState extends State<Ephemeral> {
         );
       }
 
-      // 2. Initialize JavascriptRuntime
+      // 2. Initialize JavascriptRuntime and evaluate top-level JS code
       _jsRuntime?.dispose();
       final runtime = getJavascriptRuntime(xhr: widget.enableJsXHR);
       _jsRuntime = runtime;
 
-      // 3. Evaluate JS code
       var evalResult = runtime.evaluate(jsCode);
       if (evalResult.isPromise ||
           evalResult.stringResult == '[object Promise]') {
@@ -156,46 +161,9 @@ class _EphemeralState extends State<Ephemeral> {
       if (evalResult.isError) {
         throw Exception('Error executing JS code: ${evalResult.stringResult}');
       }
+      _initialEvalResult = evalResult;
 
-      // 4. Decode A2UI JSON payload
-      String rawResult = evalResult.stringResult;
-      if (rawResult == '[object Object]' ||
-          rawResult == '[object Array]' ||
-          rawResult == 'null') {
-        try {
-          final stringified = runtime.jsonStringify(evalResult);
-          if (stringified != 'null' && stringified.isNotEmpty) {
-            rawResult = stringified;
-          }
-        } catch (_) {}
-      }
-
-      dynamic jsonPayload = jsonDecode(rawResult);
-      if (jsonPayload is String) {
-        jsonPayload = jsonDecode(jsonPayload);
-      }
-
-      final List<A2uiMessage> messages = [];
-      if (jsonPayload is List) {
-        for (final item in jsonPayload) {
-          if (item is Map<String, dynamic>) {
-            messages.add(A2uiMessage.fromJson(item));
-          }
-        }
-      } else if (jsonPayload is Map<String, dynamic>) {
-        messages.add(A2uiMessage.fromJson(jsonPayload));
-      } else {
-        throw Exception(
-          'Invalid A2UI payload returned by JS: '
-          'Expected JSON Map or List, got ${jsonPayload.runtimeType}',
-        );
-      }
-
-      if (messages.isEmpty) {
-        throw Exception('No A2UI messages found in JS output');
-      }
-
-      // 5. Setup SurfaceController and dispatch messages
+      // 3. Setup SurfaceController and listen for UI interaction events
       final catalog = widget.catalog ?? BasicCatalogItems.asCatalog();
       _onSubmitSubscription?.cancel();
       _surfaceController?.dispose();
@@ -210,8 +178,8 @@ class _EphemeralState extends State<Ephemeral> {
                 debugPrint('Ephemeral UI event: $interaction');
                 widget.onUiEvent?.call(interaction);
 
-                final runtime = _jsRuntime;
-                if (runtime != null) {
+                final currentRuntime = _jsRuntime;
+                if (currentRuntime != null) {
                   try {
                     final String evalCode = '''
 (function() {
@@ -223,92 +191,34 @@ class _EphemeralState extends State<Ephemeral> {
       eventData = ${jsonEncode(interaction)};
     }
     var res = onUIEvent(eventData);
-    if (typeof res === 'string') return res;
-    if (res !== undefined && res !== null) return JSON.stringify(res);
+    return res === true || res === 'true';
   }
-  return null;
+  return false;
 })()
 ''';
-                    var evalResult = runtime.evaluate(evalCode);
-                    if (evalResult.isPromise ||
-                        evalResult.stringResult == '[object Promise]') {
-                      evalResult = await runtime.handlePromise(evalResult);
+                    var resEval = currentRuntime.evaluate(evalCode);
+                    if (resEval.isPromise ||
+                        resEval.stringResult == '[object Promise]') {
+                      resEval = await currentRuntime.handlePromise(resEval);
                     }
 
-                    if (!evalResult.isError) {
-                      String rawResult = evalResult.stringResult;
-                      if (rawResult == '[object Object]' ||
-                          rawResult == '[object Array]') {
-                        try {
-                          rawResult = runtime.jsonStringify(evalResult);
-                        } catch (_) {}
-                      }
+                    final bool shouldRebuild =
+                        resEval.stringResult == 'true' ||
+                        resEval.stringResult == '1';
 
-                      if (rawResult.isNotEmpty &&
-                          rawResult != 'null' &&
-                          rawResult != 'undefined') {
-                        dynamic responseJson = jsonDecode(rawResult);
-                        if (responseJson is String) {
-                          responseJson = jsonDecode(responseJson);
-                        }
-
-                        final List<A2uiMessage> responseMessages = [];
-                        if (responseJson is List) {
-                          for (final item in responseJson) {
-                            if (item is Map<String, dynamic>) {
-                              responseMessages.add(A2uiMessage.fromJson(item));
-                            }
-                          }
-                        } else if (responseJson is Map<String, dynamic>) {
-                          responseMessages.add(
-                            A2uiMessage.fromJson(responseJson),
-                          );
-                        }
-
-                        for (final resMsg in responseMessages) {
-                          _surfaceController?.handleMessage(resMsg);
-                        }
-                      }
+                    if (shouldRebuild && mounted) {
+                      setState(() {});
                     }
                   } catch (e, st) {
-                    debugPrint('Error handling onUIEvent in JS: $e\n$st');
+                    debugPrint('Error executing onUIEvent in JS: $e\n$st');
                   }
                 }
               }
             }
           });
 
-      String? activeId;
-      final bool hasCreateSurface = messages.any((m) => m is CreateSurface);
-      if (!hasCreateSurface) {
-        for (final msg in messages) {
-          if (msg is UpdateComponents) {
-            activeId = msg.surfaceId;
-            controller.handleMessage(
-              CreateSurface(
-                surfaceId: msg.surfaceId,
-                catalogId: catalog.catalogId ?? basicCatalogId,
-              ),
-            );
-            break;
-          }
-        }
-      }
-
-      for (final msg in messages) {
-        if (msg is CreateSurface) {
-          activeId = msg.surfaceId;
-        } else if (msg is UpdateComponents && activeId == null) {
-          activeId = msg.surfaceId;
-        }
-        controller.handleMessage(msg);
-      }
-
-      activeId ??= controller.activeSurfaceIds.firstOrNull;
-
       if (mounted) {
         setState(() {
-          _surfaceId = activeId;
           _isLoading = false;
         });
       }
@@ -337,12 +247,110 @@ class _EphemeralState extends State<Ephemeral> {
       return ErrorWidget(_error!);
     }
 
-    if (_surfaceController == null || _surfaceId == null) {
+    if (_jsRuntime == null || _surfaceController == null) {
+      return const SizedBox.shrink();
+    }
+
+    String? activeId;
+    try {
+      // Synchronously call `render()` in JS to retrieve latest A2UI definition
+      const String renderJs = '''
+(function() {
+  if (typeof render === 'function') {
+    var res = render();
+    if (typeof res === 'string') return res;
+    if (res !== undefined && res !== null) return JSON.stringify(res);
+  }
+  return null;
+})()
+''';
+      var evalResult = _jsRuntime!.evaluate(renderJs);
+      if (evalResult.isError) {
+        throw Exception(
+          'Error executing JS render(): ${evalResult.stringResult}',
+        );
+      }
+
+      String rawResult = evalResult.stringResult;
+      if (rawResult == 'null' ||
+          rawResult == 'undefined' ||
+          rawResult.isEmpty) {
+        final initial = _initialEvalResult;
+        if (initial != null) {
+          rawResult = initial.stringResult;
+          if (rawResult == '[object Object]' || rawResult == '[object Array]') {
+            try {
+              rawResult = _jsRuntime!.jsonStringify(initial);
+            } catch (_) {}
+          }
+        }
+      } else if (rawResult == '[object Object]' ||
+          rawResult == '[object Array]') {
+        try {
+          rawResult = _jsRuntime!.jsonStringify(evalResult);
+        } catch (_) {}
+      }
+
+      if (rawResult.isNotEmpty &&
+          rawResult != 'null' &&
+          rawResult != 'undefined') {
+        dynamic jsonPayload = jsonDecode(rawResult);
+        if (jsonPayload is String) {
+          jsonPayload = jsonDecode(jsonPayload);
+        }
+
+        final List<A2uiMessage> messages = [];
+        if (jsonPayload is List) {
+          for (final item in jsonPayload) {
+            if (item is Map<String, dynamic>) {
+              messages.add(A2uiMessage.fromJson(item));
+            }
+          }
+        } else if (jsonPayload is Map<String, dynamic>) {
+          messages.add(A2uiMessage.fromJson(jsonPayload));
+        }
+
+        final catalog = widget.catalog ?? BasicCatalogItems.asCatalog();
+        final bool hasCreateSurface = messages.any((m) => m is CreateSurface);
+        if (!hasCreateSurface) {
+          for (final msg in messages) {
+            if (msg is UpdateComponents) {
+              activeId = msg.surfaceId;
+              _surfaceController!.handleMessage(
+                CreateSurface(
+                  surfaceId: msg.surfaceId,
+                  catalogId: catalog.catalogId ?? basicCatalogId,
+                ),
+              );
+              break;
+            }
+          }
+        }
+
+        for (final msg in messages) {
+          if (msg is CreateSurface) {
+            activeId = msg.surfaceId;
+          } else if (msg is UpdateComponents && activeId == null) {
+            activeId = msg.surfaceId;
+          }
+          _surfaceController!.handleMessage(msg);
+        }
+
+        activeId ??= _surfaceController!.activeSurfaceIds.firstOrNull;
+      }
+    } catch (e, st) {
+      if (widget.errorBuilder != null) {
+        return widget.errorBuilder!(context, e, st);
+      }
+      return ErrorWidget(e);
+    }
+
+    if (activeId == null) {
       return const SizedBox.shrink();
     }
 
     return Surface(
-      surfaceContext: _surfaceController!.contextFor(_surfaceId!),
+      surfaceContext: _surfaceController!.contextFor(activeId),
     );
   }
 
