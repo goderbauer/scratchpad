@@ -184,13 +184,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(receivedEvent, isNotNull);
-      expect(receivedEvent, contains('increment'));
-      expect(find.text('Current count: 5'), findsOneWidget);
+      expect(receivedEvent, contains('action_'));
+      expect(find.text('Current count: 1'), findsOneWidget);
 
       await tester.tap(find.text('Decrement (-)'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Current count: 4'), findsOneWidget);
+      expect(find.text('Current count: 0'), findsOneWidget);
     },
   );
 

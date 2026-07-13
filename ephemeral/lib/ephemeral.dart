@@ -153,16 +153,20 @@ class _EphemeralState extends State<Ephemeral> {
       _jsRuntime = runtime;
 
       runtime.onMessage('rebuild', (dynamic args) {
-        if (mounted) {
-          setState(() {});
-        }
+        Future.microtask(() {
+          if (mounted) {
+            setState(() {});
+          }
+        });
       });
 
       runtime.evaluate('''
 (function() {
   globalThis.rebuild = function() {
     if (typeof sendMessage === 'function') {
-      sendMessage('rebuild', 'true');
+      setTimeout(function() {
+        sendMessage('rebuild', 'true');
+      }, 0);
     }
   };
   globalThis.requestRebuild = globalThis.rebuild;

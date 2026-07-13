@@ -348,8 +348,8 @@
     get$hashCode$(receiver) {
       return J.getInterceptor$(receiver).get$hashCode(receiver);
     },
-    get$isNotEmpty$ax(receiver) {
-      return J.getInterceptor$ax(receiver).get$isNotEmpty(receiver);
+    get$isNotEmpty$asx(receiver) {
+      return J.getInterceptor$asx(receiver).get$isNotEmpty(receiver);
     },
     get$iterator$ax(receiver) {
       return J.getInterceptor$ax(receiver).get$iterator(receiver);
@@ -401,7 +401,7 @@
     ArrayIterator: function ArrayIterator(t0, t1, t2) {
       var _ = this;
       _._iterable = t0;
-      _._length = t1;
+      _.__interceptors$_length = t1;
       _._index = 0;
       _._current = null;
       _.$ti = t2;
@@ -416,6 +416,12 @@
     }
   },
   A = {JS_CONST: function JS_CONST() {
+    },
+    LateError$fieldNI(fieldName) {
+      return new A.LateError("Field '" + fieldName + "' has not been initialized.");
+    },
+    LateError$fieldAI(fieldName) {
+      return new A.LateError("Field '" + fieldName + "' has already been initialized.");
     },
     SystemHash_combine(hash, value) {
       hash = hash + value & 536870911;
@@ -438,7 +444,7 @@
       return false;
     },
     LateError: function LateError(t0) {
-      this.__internal$_message = t0;
+      this._message = t0;
     },
     SentinelValue: function SentinelValue() {
     },
@@ -543,7 +549,7 @@
     },
     Primitives_lazyAsJsDate(receiver) {
       if (receiver.date === void 0)
-        receiver.date = new Date(receiver._value);
+        receiver.date = new Date(receiver._core$_value);
       return receiver.date;
     },
     Primitives_getYear(receiver) {
@@ -1272,8 +1278,8 @@
     },
     JsLinkedHashMap: function JsLinkedHashMap(t0) {
       var _ = this;
-      _.__js_helper$_length = 0;
-      _._last = _._first = _.__js_helper$_rest = _.__js_helper$_nums = _.__js_helper$_strings = null;
+      _._length = 0;
+      _._last = _._first = _.__js_helper$_rest = _._nums = _._strings = null;
       _._modifications = 0;
       _.$ti = t0;
     },
@@ -1283,12 +1289,12 @@
       this._next = null;
     },
     LinkedHashMapKeysIterable: function LinkedHashMapKeysIterable(t0, t1) {
-      this.__js_helper$_map = t0;
+      this._map = t0;
       this.$ti = t1;
     },
     LinkedHashMapKeyIterator: function LinkedHashMapKeyIterator(t0, t1, t2, t3) {
       var _ = this;
-      _.__js_helper$_map = t0;
+      _._map = t0;
       _._modifications = t1;
       _._cell = t2;
       _.__js_helper$_current = null;
@@ -1302,6 +1308,23 @@
     },
     initHooks_closure1: function initHooks_closure1(t0) {
       this.prototypeForTag = t0;
+    },
+    throwLateFieldNI(fieldName) {
+      throw A.initializeExceptionWrapper(A.LateError$fieldNI(fieldName), new Error());
+    },
+    throwLateFieldAI(fieldName) {
+      throw A.initializeExceptionWrapper(A.LateError$fieldAI(fieldName), new Error());
+    },
+    throwLateFieldADI(fieldName) {
+      throw A.initializeExceptionWrapper(new A.LateError("Field '" + fieldName + "' has been assigned during initialization."), new Error());
+    },
+    _Cell$named(_name) {
+      var t1 = new A._Cell(_name);
+      return t1._value = t1;
+    },
+    _Cell: function _Cell(t0) {
+      this._name = t0;
+      this._value = null;
     },
     NativeByteBuffer: function NativeByteBuffer() {
     },
@@ -2789,7 +2812,7 @@
     _Error: function _Error() {
     },
     _TypeError: function _TypeError(t0) {
-      this._message = t0;
+      this.__rti$_message = t0;
     },
     _AsyncRun__initializeScheduleImmediate() {
       var t1, div, span;
@@ -3217,11 +3240,19 @@
       delete table["<non-identifier-key>"];
       return table;
     },
+    LinkedHashMap_LinkedHashMap($K, $V) {
+      return new A.JsLinkedHashMap($K._eval$1("@<0>")._bind$1($V)._eval$1("JsLinkedHashMap<1,2>"));
+    },
     LinkedHashMap_LinkedHashMap$_literal(keyValuePairs, $K, $V) {
       return $K._eval$1("@<0>")._bind$1($V)._eval$1("LinkedHashMap<1,2>")._as(A.fillLiteralMap(keyValuePairs, new A.JsLinkedHashMap($K._eval$1("@<0>")._bind$1($V)._eval$1("JsLinkedHashMap<1,2>"))));
     },
     LinkedHashMap_LinkedHashMap$_empty($K, $V) {
       return new A.JsLinkedHashMap($K._eval$1("@<0>")._bind$1($V)._eval$1("JsLinkedHashMap<1,2>"));
+    },
+    LinkedHashMap_LinkedHashMap$from(other, $K, $V) {
+      var result = A.LinkedHashMap_LinkedHashMap($K, $V);
+      other.forEach$1(0, new A.LinkedHashMap_LinkedHashMap$from_closure(result, $K, $V));
+      return result;
     },
     MapBase_mapToString(m) {
       var result, t1;
@@ -3248,20 +3279,25 @@
     _IdentityHashMap: function _IdentityHashMap(t0) {
       var _ = this;
       _._collection$_length = 0;
-      _._keys = _._collection$_rest = _._nums = _._strings = null;
+      _._keys = _._collection$_rest = _._collection$_nums = _._collection$_strings = null;
       _.$ti = t0;
     },
     _HashMapKeyIterable: function _HashMapKeyIterable(t0, t1) {
-      this._map = t0;
+      this._collection$_map = t0;
       this.$ti = t1;
     },
     _HashMapKeyIterator: function _HashMapKeyIterator(t0, t1, t2) {
       var _ = this;
-      _._map = t0;
+      _._collection$_map = t0;
       _._keys = t1;
       _._offset = 0;
       _._collection$_current = null;
       _.$ti = t2;
+    },
+    LinkedHashMap_LinkedHashMap$from_closure: function LinkedHashMap_LinkedHashMap$from_closure(t0, t1, t2) {
+      this.result = t0;
+      this.K = t1;
+      this.V = t2;
     },
     ListBase: function ListBase() {
     },
@@ -3544,7 +3580,7 @@
       return object2;
     },
     DateTime: function DateTime(t0, t1, t2) {
-      this._value = t0;
+      this._core$_value = t0;
       this._microsecond = t1;
       this.isUtc = t2;
     },
@@ -3643,61 +3679,145 @@
     dartify_convert: function dartify_convert(t0) {
       this._convertedObjects = t0;
     },
-    unmangleGlobalNameIfPreservedAnyways($name) {
-      return init.mangledGlobalNames[$name];
+    _render() {
+      var t1 = $.___app._readField$0(),
+        t2 = $.___surfaceId._readField$0(),
+        t3 = A._setArrayType([], type$.JSArray_Map_String_dynamic),
+        t4 = type$.String,
+        t5 = A.LinkedHashMap_LinkedHashMap$_empty(t4, type$.void_Function),
+        t6 = t1.__A2uiApp_rootElement_F;
+      t6 === $ && A.throwLateFieldNI("rootElement");
+      t6.child.render$1(new A.A2uiRenderContext(t3, t5));
+      t1._actionHandlers = t5;
+      t5 = type$.Object;
+      return B.C_JsonCodec.encode$2$toEncodable(A._setArrayType([A.LinkedHashMap_LinkedHashMap$_literal(["version", "v0.9", "createSurface", A.LinkedHashMap_LinkedHashMap$_literal(["surfaceId", t2, "catalogId", "https://a2ui.org/specification/v0_9/basic_catalog.json", "sendDataModel", true], t4, t5)], t4, t5), A.LinkedHashMap_LinkedHashMap$_literal(["version", "v0.9", "updateComponents", A.LinkedHashMap_LinkedHashMap$_literal(["surfaceId", t2, "components", t3], t4, t5)], t4, t5)], type$.JSArray_Map_String_Object), null);
     },
-    throwLateFieldADI(fieldName) {
-      throw A.initializeExceptionWrapper(new A.LateError("Field '" + fieldName + "' has been assigned during initialization."), new Error());
+    _onUIEvent($event) {
+      var eventDart = $event == null ? null : A.dartify($event);
+      if (type$.Map_String_dynamic._is(eventDart))
+        $.___app._readField$0().handleUIEvent$1(eventDart);
+      else if (eventDart instanceof A.MapBase)
+        $.___app._readField$0().handleUIEvent$1(A.LinkedHashMap_LinkedHashMap$from(eventDart, type$.String, type$.dynamic));
     },
-    render() {
-      var t1 = type$.String,
-        t2 = type$.Object,
-        t3 = type$.JSArray_String,
-        t4 = type$.Map_String_String,
-        t5 = type$.JSArray_Map_String_Object;
-      return B.C_JsonCodec.encode$2$toEncodable(A._setArrayType([A.LinkedHashMap_LinkedHashMap$_literal(["version", "v0.9", "createSurface", A.LinkedHashMap_LinkedHashMap$_literal(["surfaceId", "counter", "catalogId", "https://a2ui.org/specification/v0_9/basic_catalog.json", "sendDataModel", true], t1, t2)], t1, t2), A.LinkedHashMap_LinkedHashMap$_literal(["version", "v0.9", "updateComponents", A.LinkedHashMap_LinkedHashMap$_literal(["surfaceId", "counter", "components", A._setArrayType([A.LinkedHashMap_LinkedHashMap$_literal(["id", "root", "component", "Card", "child", "main_column"], t1, t1), A.LinkedHashMap_LinkedHashMap$_literal(["id", "main_column", "component", "Column", "children", A._setArrayType(["title", "count_display", "button_row"], t3)], t1, t2), A.LinkedHashMap_LinkedHashMap$_literal(["id", "title", "component", "Text", "text", "Counter App", "variant", "h2"], t1, t1), A.LinkedHashMap_LinkedHashMap$_literal(["id", "count_display", "component", "Text", "text", A.LinkedHashMap_LinkedHashMap$_literal(["path", "/count"], t1, t1), "variant", "h3"], t1, t2), A.LinkedHashMap_LinkedHashMap$_literal(["id", "button_row", "component", "Row", "children", A._setArrayType(["decrement_btn", "increment_btn"], t3)], t1, t2), A.LinkedHashMap_LinkedHashMap$_literal(["id", "decrement_btn", "component", "Button", "child", "decrement_label", "action", A.LinkedHashMap_LinkedHashMap$_literal(["event", A.LinkedHashMap_LinkedHashMap$_literal(["name", "decrement"], t1, t1)], t1, t4)], t1, t2), A.LinkedHashMap_LinkedHashMap$_literal(["id", "decrement_label", "component", "Text", "text", "Decrement (-)"], t1, t1), A.LinkedHashMap_LinkedHashMap$_literal(["id", "increment_btn", "component", "Button", "child", "increment_label", "action", A.LinkedHashMap_LinkedHashMap$_literal(["event", A.LinkedHashMap_LinkedHashMap$_literal(["name", "increment"], t1, t1)], t1, t4)], t1, t2), A.LinkedHashMap_LinkedHashMap$_literal(["id", "increment_label", "component", "Text", "text", "Increment (+)"], t1, t1)], t5)], t1, t2)], t1, t2), A.LinkedHashMap_LinkedHashMap$_literal(["version", "v0.9", "updateDataModel", A.LinkedHashMap_LinkedHashMap$_literal(["surfaceId", "counter", "path", "/count", "value", "Current count: " + $.count], t1, t1)], t1, t2)], t5), null);
+    Widget: function Widget() {
     },
-    onUIEvent($event) {
-      var action, actionName, t1,
-        eventDart = $event == null ? null : A.dartify($event);
-      if (eventDart instanceof A.MapBase) {
-        action = eventDart.$index(0, "action");
-        if (action instanceof A.MapBase) {
-          actionName = action.$index(0, "name");
-          t1 = J.getInterceptor$(actionName);
-          if (t1.$eq(actionName, "increment")) {
-            $.count = $.count + 5;
-            init.G.rebuild();
-          } else if (t1.$eq(actionName, "decrement")) {
-            $.count = $.count - 1;
-            init.G.rebuild();
-          }
-        }
-      }
+    Element: function Element() {
+    },
+    A2uiRenderContext: function A2uiRenderContext(t0, t1) {
+      this.components = t0;
+      this.actionHandlers = t1;
+      this._counter = 0;
+    },
+    StatefulWidget: function StatefulWidget() {
+    },
+    State: function State() {
+    },
+    StatefulElement: function StatefulElement(t0) {
+      this.__StatefulElement_state_F = $;
+      this.child = null;
+      this.widget = t0;
+    },
+    LeafWidget: function LeafWidget() {
+    },
+    SingleChildLeafWidget: function SingleChildLeafWidget() {
+    },
+    SingleChildLeafElement: function SingleChildLeafElement(t0) {
+      this.child = null;
+      this.widget = t0;
+    },
+    MultiChildLeafWidget: function MultiChildLeafWidget() {
+    },
+    MultiChildLeafElement: function MultiChildLeafElement(t0, t1) {
+      this.children = t0;
+      this.widget = t1;
+    },
+    Card: function Card(t0, t1) {
+      this.child = t0;
+      this.key = t1;
+    },
+    Column: function Column(t0, t1) {
+      this.children = t0;
+      this.key = t1;
+    },
+    Row: function Row(t0, t1) {
+      this.children = t0;
+      this.key = t1;
+    },
+    Text: function Text(t0, t1, t2) {
+      this.text = t0;
+      this.variant = t1;
+      this.key = t2;
+    },
+    TextLeafElement: function TextLeafElement(t0) {
+      this.widget = t0;
+    },
+    Button: function Button(t0, t1, t2) {
+      this.onPressed = t0;
+      this.child = t1;
+      this.key = t2;
+    },
+    A2uiApp: function A2uiApp(t0, t1) {
+      this.rootWidget = t0;
+      this.__A2uiApp_rootElement_F = $;
+      this._actionHandlers = t1;
     },
     main() {
-      var result, t2,
-        _s35_ = "Attempting to rewrap a JS function.",
-        t1 = init.G;
-      if (typeof A.counter__render$closure() == "function")
+      var t1, t2, result,
+        _s35_ = "Attempting to rewrap a JS function.";
+      $.___surfaceId.set$finalFieldValue("counter");
+      t1 = new A.A2uiApp(B.CounterApp_null, A.LinkedHashMap_LinkedHashMap$_empty(type$.String, type$.void_Function));
+      t2 = new A.StatefulElement(B.CounterApp_null);
+      t1.__A2uiApp_rootElement_F = t2;
+      t2.mount$1(null);
+      $.___app.set$finalFieldValue(t1);
+      t1 = init.G;
+      if (typeof A.a2ui_framework___render$closure() == "function")
         A.throwExpression(A.ArgumentError$(_s35_, null));
       result = function(_call, f) {
         return function() {
           return _call(f);
         };
-      }(A._callDartFunctionFast0, A.counter__render$closure());
+      }(A._callDartFunctionFast0, A.a2ui_framework___render$closure());
       t2 = $.$get$DART_CLOSURE_DART_JSINTEROP_PROPERTY_NAME();
-      result[t2] = A.counter__render$closure();
+      result[t2] = A.a2ui_framework___render$closure();
       t1.render = result;
-      if (typeof A.counter__onUIEvent$closure() == "function")
+      if (typeof A.a2ui_framework___onUIEvent$closure() == "function")
         A.throwExpression(A.ArgumentError$(_s35_, null));
       result = function(_call, f) {
         return function(arg1) {
           return _call(f, arg1, arguments.length);
         };
-      }(A._callDartFunctionFast1, A.counter__onUIEvent$closure());
-      result[t2] = A.counter__onUIEvent$closure();
+      }(A._callDartFunctionFast1, A.a2ui_framework___onUIEvent$closure());
+      result[t2] = A.a2ui_framework___onUIEvent$closure();
       t1.onUIEvent = result;
+    },
+    CounterApp: function CounterApp(t0) {
+      this.key = t0;
+    },
+    _CounterAppState: function _CounterAppState() {
+      this.count = 0;
+      this.__State__element_A = $;
+    },
+    _CounterAppState_build_closure: function _CounterAppState_build_closure(t0) {
+      this.$this = t0;
+    },
+    _CounterAppState_build__closure1: function _CounterAppState_build__closure1(t0) {
+      this.$this = t0;
+    },
+    _CounterAppState_build_closure0: function _CounterAppState_build_closure0(t0) {
+      this.$this = t0;
+    },
+    _CounterAppState_build__closure0: function _CounterAppState_build__closure0(t0) {
+      this.$this = t0;
+    },
+    _CounterAppState_build_closure1: function _CounterAppState_build_closure1(t0) {
+      this.$this = t0;
+    },
+    _CounterAppState_build__closure: function _CounterAppState_build__closure(t0) {
+      this.$this = t0;
+    },
+    unmangleGlobalNameIfPreservedAnyways($name) {
+      return init.mangledGlobalNames[$name];
     }
   },
   B = {};
@@ -3787,6 +3907,27 @@
       receiver.$flags & 1 && A.throwUnsupportedOperation(receiver, 29);
       receiver.push(value);
     },
+    addAll$1(receiver, collection) {
+      A._arrayInstanceType(receiver)._eval$1("Iterable<1>")._as(collection);
+      receiver.$flags & 1 && A.throwUnsupportedOperation(receiver, "addAll", 2);
+      this._addAllFromArray$1(receiver, collection);
+      return;
+    },
+    _addAllFromArray$1(receiver, array) {
+      var len, i;
+      type$.JSArray_dynamic._as(array);
+      len = array.length;
+      if (len === 0)
+        return;
+      if (receiver === array)
+        throw A.wrapException(A.ConcurrentModificationError$(receiver));
+      for (i = 0; i < len; ++i)
+        receiver.push(array[i]);
+    },
+    clear$0(receiver) {
+      receiver.$flags & 1 && A.throwUnsupportedOperation(receiver, "clear", "clear");
+      receiver.length = 0;
+    },
     get$isNotEmpty(receiver) {
       return receiver.length !== 0;
     },
@@ -3842,7 +3983,7 @@
       var t2, _this = this,
         t1 = _this._iterable,
         $length = t1.length;
-      if (_this._length !== $length) {
+      if (_this.__interceptors$_length !== $length) {
         t1 = A.throwConcurrentModificationError(t1);
         throw A.wrapException(t1);
       }
@@ -3935,7 +4076,7 @@
   };
   A.LateError.prototype = {
     toString$0(_) {
-      return "LateInitializationError: " + this.__internal$_message;
+      return "LateInitializationError: " + this._message;
     }
   };
   A.SentinelValue.prototype = {};
@@ -4078,25 +4219,25 @@
   };
   A.JsLinkedHashMap.prototype = {
     get$length(_) {
-      return this.__js_helper$_length;
+      return this._length;
     },
     get$isEmpty(_) {
-      return this.__js_helper$_length === 0;
+      return this._length === 0;
     },
     get$keys() {
-      return new A.LinkedHashMapKeysIterable(this, this.$ti._eval$1("LinkedHashMapKeysIterable<1>"));
+      return new A.LinkedHashMapKeysIterable(this, A._instanceType(this)._eval$1("LinkedHashMapKeysIterable<1>"));
     },
     $index(_, key) {
       var strings, cell, t1, nums, _null = null;
       if (typeof key == "string") {
-        strings = this.__js_helper$_strings;
+        strings = this._strings;
         if (strings == null)
           return _null;
         cell = strings[key];
         t1 = cell == null ? _null : cell.hashMapCellValue;
         return t1;
       } else if (typeof key == "number" && (key & 0x3fffffff) === key) {
-        nums = this.__js_helper$_nums;
+        nums = this._nums;
         if (nums == null)
           return _null;
         cell = nums[key];
@@ -4110,43 +4251,49 @@
         rest = this.__js_helper$_rest;
       if (rest == null)
         return null;
-      bucket = this.__js_helper$_getBucket$2(rest, key);
+      bucket = this._getBucket$2(rest, key);
       index = this.internalFindBucketIndex$2(bucket, key);
       if (index < 0)
         return null;
       return bucket[index].hashMapCellValue;
     },
     $indexSet(_, key, value) {
-      var strings, nums, rest, hash, bucket, index, _this = this,
-        t1 = _this.$ti;
+      var strings, nums, _this = this,
+        t1 = A._instanceType(_this);
       t1._precomputed1._as(key);
       t1._rest[1]._as(value);
       if (typeof key == "string") {
-        strings = _this.__js_helper$_strings;
-        _this._addHashTableEntry$3(strings == null ? _this.__js_helper$_strings = _this._newHashTable$0() : strings, key, value);
+        strings = _this._strings;
+        _this._addHashTableEntry$3(strings == null ? _this._strings = _this._newHashTable$0() : strings, key, value);
       } else if (typeof key == "number" && (key & 0x3fffffff) === key) {
-        nums = _this.__js_helper$_nums;
-        _this._addHashTableEntry$3(nums == null ? _this.__js_helper$_nums = _this._newHashTable$0() : nums, key, value);
-      } else {
-        rest = _this.__js_helper$_rest;
-        if (rest == null)
-          rest = _this.__js_helper$_rest = _this._newHashTable$0();
-        hash = J.get$hashCode$(key) & 1073741823;
-        bucket = rest[hash];
-        if (bucket == null)
-          rest[hash] = [_this._newLinkedCell$2(key, value)];
-        else {
-          index = _this.internalFindBucketIndex$2(bucket, key);
-          if (index >= 0)
-            bucket[index].hashMapCellValue = value;
-          else
-            bucket.push(_this._newLinkedCell$2(key, value));
-        }
+        nums = _this._nums;
+        _this._addHashTableEntry$3(nums == null ? _this._nums = _this._newHashTable$0() : nums, key, value);
+      } else
+        _this.internalSet$2(key, value);
+    },
+    internalSet$2(key, value) {
+      var rest, hash, bucket, index, _this = this,
+        t1 = A._instanceType(_this);
+      t1._precomputed1._as(key);
+      t1._rest[1]._as(value);
+      rest = _this.__js_helper$_rest;
+      if (rest == null)
+        rest = _this.__js_helper$_rest = _this._newHashTable$0();
+      hash = _this.internalComputeHashCode$1(key);
+      bucket = rest[hash];
+      if (bucket == null)
+        rest[hash] = [_this._newLinkedCell$2(key, value)];
+      else {
+        index = _this.internalFindBucketIndex$2(bucket, key);
+        if (index >= 0)
+          bucket[index].hashMapCellValue = value;
+        else
+          bucket.push(_this._newLinkedCell$2(key, value));
       }
     },
     forEach$1(_, action) {
       var cell, modifications, _this = this;
-      _this.$ti._eval$1("~(1,2)")._as(action);
+      A._instanceType(_this)._eval$1("~(1,2)")._as(action);
       cell = _this._first;
       modifications = _this._modifications;
       while (cell != null) {
@@ -4158,7 +4305,7 @@
     },
     _addHashTableEntry$3(table, key, value) {
       var cell,
-        t1 = this.$ti;
+        t1 = A._instanceType(this);
       t1._precomputed1._as(key);
       t1._rest[1]._as(value);
       cell = table[key];
@@ -4169,18 +4316,21 @@
     },
     _newLinkedCell$2(key, value) {
       var _this = this,
-        t1 = _this.$ti,
+        t1 = A._instanceType(_this),
         cell = new A.LinkedHashMapCell(t1._precomputed1._as(key), t1._rest[1]._as(value));
       if (_this._first == null)
         _this._first = _this._last = cell;
       else
         _this._last = _this._last._next = cell;
-      ++_this.__js_helper$_length;
+      ++_this._length;
       _this._modifications = _this._modifications + 1 & 1073741823;
       return cell;
     },
-    __js_helper$_getBucket$2(table, key) {
-      return table[J.get$hashCode$(key) & 1073741823];
+    internalComputeHashCode$1(key) {
+      return J.get$hashCode$(key) & 1073741823;
+    },
+    _getBucket$2(table, key) {
+      return table[this.internalComputeHashCode$1(key)];
     },
     internalFindBucketIndex$2(bucket, key) {
       var $length, i;
@@ -4206,13 +4356,13 @@
   A.LinkedHashMapCell.prototype = {};
   A.LinkedHashMapKeysIterable.prototype = {
     get$length(_) {
-      return this.__js_helper$_map.__js_helper$_length;
+      return this._map._length;
     },
     get$isEmpty(_) {
-      return this.__js_helper$_map.__js_helper$_length === 0;
+      return this._map._length === 0;
     },
     get$iterator(_) {
-      var t1 = this.__js_helper$_map;
+      var t1 = this._map;
       return new A.LinkedHashMapKeyIterator(t1, t1._modifications, t1._first, this.$ti._eval$1("LinkedHashMapKeyIterator<1>"));
     }
   };
@@ -4222,7 +4372,7 @@
     },
     moveNext$0() {
       var cell, _this = this,
-        t1 = _this.__js_helper$_map;
+        t1 = _this._map;
       if (_this._modifications !== t1._modifications)
         throw A.wrapException(A.ConcurrentModificationError$(t1));
       cell = _this._cell;
@@ -4253,6 +4403,20 @@
       return this.prototypeForTag(A._asString(tag));
     },
     $signature: 8
+  };
+  A._Cell.prototype = {
+    _readField$0() {
+      var t1 = this._value;
+      if (t1 === this)
+        throw A.wrapException(A.LateError$fieldNI(this._name));
+      return t1;
+    },
+    set$finalFieldValue(v) {
+      var _this = this;
+      if (_this._value !== _this)
+        throw A.wrapException(A.LateError$fieldAI(_this._name));
+      _this._value = v;
+    }
   };
   A.NativeByteBuffer.prototype = {
     get$runtimeType(receiver) {
@@ -4355,7 +4519,7 @@
   };
   A._Error.prototype = {
     toString$0(_) {
-      return this._message;
+      return this.__rti$_message;
     }
   };
   A._TypeError.prototype = {$isTypeError: 1};
@@ -4799,10 +4963,10 @@
     containsKey$1(key) {
       var strings, nums;
       if (typeof key == "string" && key !== "__proto__") {
-        strings = this._strings;
+        strings = this._collection$_strings;
         return strings == null ? false : strings[key] != null;
       } else if (typeof key == "number" && (key & 1073741823) === key) {
-        nums = this._nums;
+        nums = this._collection$_nums;
         return nums == null ? false : nums[key] != null;
       } else
         return this._containsKey$1(key);
@@ -4811,16 +4975,16 @@
       var rest = this._collection$_rest;
       if (rest == null)
         return false;
-      return this._findBucketIndex$2(this._getBucket$2(rest, key), key) >= 0;
+      return this._findBucketIndex$2(this._collection$_getBucket$2(rest, key), key) >= 0;
     },
     $index(_, key) {
       var strings, t1, nums;
       if (typeof key == "string" && key !== "__proto__") {
-        strings = this._strings;
+        strings = this._collection$_strings;
         t1 = strings == null ? null : A._HashMap__getTableEntry(strings, key);
         return t1;
       } else if (typeof key == "number" && (key & 1073741823) === key) {
-        nums = this._nums;
+        nums = this._collection$_nums;
         t1 = nums == null ? null : A._HashMap__getTableEntry(nums, key);
         return t1;
       } else
@@ -4831,7 +4995,7 @@
         rest = this._collection$_rest;
       if (rest == null)
         return null;
-      bucket = this._getBucket$2(rest, key);
+      bucket = this._collection$_getBucket$2(rest, key);
       index = this._findBucketIndex$2(bucket, key);
       return index < 0 ? null : bucket[index + 1];
     },
@@ -4841,11 +5005,11 @@
       t1._precomputed1._as(key);
       t1._rest[1]._as(value);
       if (typeof key == "string" && key !== "__proto__") {
-        strings = _this._strings;
-        _this._collection$_addHashTableEntry$3(strings == null ? _this._strings = A._HashMap__newHashTable() : strings, key, value);
+        strings = _this._collection$_strings;
+        _this._collection$_addHashTableEntry$3(strings == null ? _this._collection$_strings = A._HashMap__newHashTable() : strings, key, value);
       } else if (typeof key == "number" && (key & 1073741823) === key) {
-        nums = _this._nums;
-        _this._collection$_addHashTableEntry$3(nums == null ? _this._nums = A._HashMap__newHashTable() : nums, key, value);
+        nums = _this._collection$_nums;
+        _this._collection$_addHashTableEntry$3(nums == null ? _this._collection$_nums = A._HashMap__newHashTable() : nums, key, value);
       } else {
         rest = _this._collection$_rest;
         if (rest == null)
@@ -4888,7 +5052,7 @@
       if (result != null)
         return result;
       result = A.List_List$filled(_this._collection$_length, null, type$.dynamic);
-      strings = _this._strings;
+      strings = _this._collection$_strings;
       index = 0;
       if (strings != null) {
         names = Object.getOwnPropertyNames(strings);
@@ -4898,7 +5062,7 @@
           ++index;
         }
       }
-      nums = _this._nums;
+      nums = _this._collection$_nums;
       if (nums != null) {
         names = Object.getOwnPropertyNames(nums);
         entries = names.length;
@@ -4932,7 +5096,7 @@
       }
       A._HashMap__setTableEntry(table, key, value);
     },
-    _getBucket$2(table, key) {
+    _collection$_getBucket$2(table, key) {
       return table[A.objectHashCode(key) & 1073741823];
     }
   };
@@ -4952,13 +5116,13 @@
   };
   A._HashMapKeyIterable.prototype = {
     get$length(_) {
-      return this._map._collection$_length;
+      return this._collection$_map._collection$_length;
     },
     get$isEmpty(_) {
-      return this._map._collection$_length === 0;
+      return this._collection$_map._collection$_length === 0;
     },
     get$iterator(_) {
-      var t1 = this._map;
+      var t1 = this._collection$_map;
       return new A._HashMapKeyIterator(t1, t1._computeKeys$0(), this.$ti._eval$1("_HashMapKeyIterator<1>"));
     }
   };
@@ -4971,7 +5135,7 @@
       var _this = this,
         keys = _this._keys,
         offset = _this._offset,
-        t1 = _this._map;
+        t1 = _this._collection$_map;
       if (keys !== t1._keys)
         throw A.wrapException(A.ConcurrentModificationError$(t1));
       else if (offset >= keys.length) {
@@ -4983,6 +5147,12 @@
         return true;
       }
     }
+  };
+  A.LinkedHashMap_LinkedHashMap$from_closure.prototype = {
+    call$2(k, v) {
+      this.result.$indexSet(0, this.K._as(k), this.V._as(v));
+    },
+    $signature: 11
   };
   A.ListBase.prototype = {
     get$iterator(receiver) {
@@ -5232,7 +5402,7 @@
       var i,
         t1 = this._sink;
       t1._contents += "[";
-      if (J.get$isNotEmpty$ax(list)) {
+      if (J.get$isNotEmpty$asx(list)) {
         if (0 >= list.length)
           return A.ioore(list, 0);
         this.writeObject$1(list[0]);
@@ -5296,12 +5466,12 @@
         return false;
       t1 = false;
       if (other instanceof A.DateTime)
-        if (this._value === other._value)
+        if (this._core$_value === other._core$_value)
           t1 = this._microsecond === other._microsecond;
       return t1;
     },
     get$hashCode(_) {
-      return A.Object_hash(this._value, this._microsecond);
+      return A.Object_hash(this._core$_value, this._microsecond);
     },
     toString$0(_) {
       var _this = this,
@@ -5563,11 +5733,296 @@
       }
       return o;
     },
-    $signature: 11
+    $signature: 12
+  };
+  A.Widget.prototype = {};
+  A.Element.prototype = {
+    mount$1($parent) {
+    },
+    update$1(newWidget) {
+      this.widget = newWidget;
+    },
+    $isBuildContext: 1
+  };
+  A.A2uiRenderContext.prototype = {
+    nextId$1(requestedId) {
+      var t1 = this._counter;
+      if (t1 === 0) {
+        this._counter = t1 + 1;
+        return "root";
+      }
+      this._counter = t1 + 1;
+      return "node_" + t1;
+    }
+  };
+  A.StatefulWidget.prototype = {};
+  A.State.prototype = {
+    setState$1(fn) {
+      var t1;
+      type$.void_Function._as(fn).call$0();
+      t1 = this.__State__element_A;
+      t1 === $ && A.throwLateFieldNI("_element");
+      t1.rebuildElement$0();
+      init.G.rebuild();
+    }
+  };
+  A.StatefulElement.prototype = {
+    mount$1($parent) {
+      var t1, t2, _this = this;
+      _this.super$Element$mount($parent);
+      t1 = type$.StatefulWidget._as(_this.widget);
+      t2 = type$.State_StatefulWidget._as(new A._CounterAppState());
+      _this.__StatefulElement_state_F !== $ && A.throwLateFieldAI("state");
+      _this.__StatefulElement_state_F = t2;
+      type$._CounterAppState._eval$1("State.T")._as(t1);
+      t2.__State__element_A = _this;
+      _this.rebuildElement$0();
+    },
+    update$1(newWidget) {
+      var t1;
+      this.super$Element$update(newWidget);
+      t1 = this.__StatefulElement_state_F;
+      t1 === $ && A.throwLateFieldNI("state");
+      A._instanceType(t1)._eval$1("State.T")._as(type$.StatefulWidget._as(newWidget));
+      this.rebuildElement$0();
+    },
+    rebuildElement$0() {
+      var builtWidget, t2, _this = this,
+        t1 = _this.__StatefulElement_state_F;
+      t1 === $ && A.throwLateFieldNI("state");
+      builtWidget = t1.build$1(_this);
+      t1 = _this.child;
+      if (t1 == null) {
+        t1 = new A.SingleChildLeafElement(builtWidget);
+        _this.child = t1;
+        t1.mount$1(_this);
+      } else {
+        t1 = A.getRuntimeTypeOfDartObject(t1.widget);
+        t2 = A.getRuntimeTypeOfDartObject(builtWidget);
+        if (t1 === t2)
+          _this.child.update$1(builtWidget);
+        else {
+          t1 = new A.SingleChildLeafElement(builtWidget);
+          _this.child = t1;
+          t1.mount$1(_this);
+        }
+      }
+    },
+    render$1(context) {
+      return this.child.render$1(context);
+    }
+  };
+  A.LeafWidget.prototype = {};
+  A.SingleChildLeafWidget.prototype = {
+    createElement$0() {
+      return new A.SingleChildLeafElement(this);
+    }
+  };
+  A.SingleChildLeafElement.prototype = {
+    mount$1($parent) {
+      var t1, _this = this;
+      _this.super$Element$mount($parent);
+      t1 = type$.SingleChildLeafWidget._as(_this.widget).child.createElement$0();
+      _this.child = t1;
+      t1.mount$1(_this);
+    },
+    update$1(newWidget) {
+      var t1, t2, _this = this;
+      _this.super$Element$update(newWidget);
+      type$.SingleChildLeafWidget._as(newWidget);
+      t1 = _this.child;
+      if (t1 == null) {
+        t1 = newWidget.child.createElement$0();
+        _this.child = t1;
+        t1.mount$1(_this);
+      } else {
+        t2 = false;
+        t1 = t1.widget;
+        t1 = A.getRuntimeTypeOfDartObject(t1) === A.getRuntimeTypeOfDartObject(newWidget.child);
+        if (t1)
+          _this.child.update$1(newWidget.child);
+        else {
+          t1 = newWidget.child.createElement$0();
+          _this.child = t1;
+          t1.mount$1(_this);
+        }
+      }
+    },
+    render$1(context) {
+      var map, t2, actionName, _this = this,
+        id = context.nextId$1(_this.widget.key),
+        t1 = _this.child,
+        childId = t1 == null ? null : t1.render$1(context);
+      t1 = type$.String;
+      map = A.LinkedHashMap_LinkedHashMap$_literal(["id", id, "component", _this.get$_componentName()], t1, type$.dynamic);
+      if (childId != null)
+        map.$indexSet(0, "child", childId);
+      t2 = _this.widget;
+      if (t2 instanceof A.Button) {
+        actionName = "action_" + id;
+        context.actionHandlers.$indexSet(0, actionName, type$.void_Function._as(t2.onPressed));
+        map.$indexSet(0, "action", A.LinkedHashMap_LinkedHashMap$_literal(["event", A.LinkedHashMap_LinkedHashMap$_literal(["name", actionName], t1, t1)], t1, type$.Map_String_String));
+      }
+      B.JSArray_methods.add$1(context.components, map);
+      return id;
+    },
+    get$_componentName() {
+      var t1 = this.widget;
+      if (t1 instanceof A.Card)
+        return "Card";
+      if (t1 instanceof A.Button)
+        return "Button";
+      return A._rtiToString(A.getRuntimeTypeOfDartObject(t1)._rti, null);
+    }
+  };
+  A.MultiChildLeafWidget.prototype = {
+    createElement$0() {
+      return new A.MultiChildLeafElement(A._setArrayType([], type$.JSArray_Element), this);
+    }
+  };
+  A.MultiChildLeafElement.prototype = {
+    mount$1($parent) {
+      var t1, t2, t3, _i, elem, _this = this;
+      _this.super$Element$mount($parent);
+      for (t1 = type$.MultiChildLeafWidget._as(_this.widget).children, t2 = t1.length, t3 = _this.children, _i = 0; _i < t1.length; t1.length === t2 || (0, A.throwConcurrentModificationError)(t1), ++_i) {
+        elem = t1[_i].createElement$0();
+        elem.mount$1(_this);
+        B.JSArray_methods.add$1(t3, elem);
+      }
+    },
+    update$1(newWidget) {
+      var newChildren, t1, t2, i, newW, t3, elem;
+      this.super$Element$update(newWidget);
+      type$.MultiChildLeafWidget._as(newWidget);
+      newChildren = A._setArrayType([], type$.JSArray_Element);
+      for (t1 = newWidget.children, t2 = this.children, i = 0; i < t1.length; ++i) {
+        newW = t1[i];
+        if (i < t2.length)
+          t3 = A.getRuntimeTypeOfDartObject(t2[i].widget) === A.getRuntimeTypeOfDartObject(newW);
+        else
+          t3 = false;
+        if (t3) {
+          if (!(i < t2.length))
+            return A.ioore(t2, i);
+          t2[i].update$1(newW);
+          if (!(i < t2.length))
+            return A.ioore(t2, i);
+          B.JSArray_methods.add$1(newChildren, t2[i]);
+        } else {
+          elem = newW.createElement$0();
+          elem.mount$1(this);
+          B.JSArray_methods.add$1(newChildren, elem);
+        }
+      }
+      B.JSArray_methods.clear$0(t2);
+      B.JSArray_methods.addAll$1(t2, newChildren);
+    },
+    render$1(context) {
+      var t1, t2, _i,
+        id = context.nextId$1(this.widget.key),
+        childIds = A._setArrayType([], type$.JSArray_String);
+      for (t1 = this.children, t2 = t1.length, _i = 0; _i < t1.length; t1.length === t2 || (0, A.throwConcurrentModificationError)(t1), ++_i)
+        B.JSArray_methods.add$1(childIds, t1[_i].render$1(context));
+      B.JSArray_methods.add$1(context.components, A.LinkedHashMap_LinkedHashMap$_literal(["id", id, "component", this.get$_componentName(), "children", childIds], type$.String, type$.dynamic));
+      return id;
+    },
+    get$_componentName() {
+      var t1 = this.widget;
+      if (t1 instanceof A.Column)
+        return "Column";
+      if (t1 instanceof A.Row)
+        return "Row";
+      return A._rtiToString(A.getRuntimeTypeOfDartObject(t1)._rti, null);
+    }
+  };
+  A.Card.prototype = {};
+  A.Column.prototype = {};
+  A.Row.prototype = {};
+  A.Text.prototype = {
+    createElement$0() {
+      return new A.TextLeafElement(this);
+    }
+  };
+  A.TextLeafElement.prototype = {
+    render$1(context) {
+      var w = type$.Text._as(this.widget),
+        id = context.nextId$1(w.key),
+        map = A.LinkedHashMap_LinkedHashMap$_literal(["id", id, "component", "Text", "text", w.text], type$.String, type$.dynamic),
+        t1 = w.variant;
+      if (t1 != null)
+        map.$indexSet(0, "variant", t1);
+      B.JSArray_methods.add$1(context.components, map);
+      return id;
+    }
+  };
+  A.Button.prototype = {};
+  A.A2uiApp.prototype = {
+    handleUIEvent$1($event) {
+      var actionName, handler,
+        action = type$.Map_String_dynamic._as($event).$index(0, "action");
+      if (action instanceof A.MapBase) {
+        actionName = action.$index(0, "name");
+        if (typeof actionName == "string") {
+          handler = this._actionHandlers.$index(0, actionName);
+          if (handler != null)
+            handler.call$0();
+        }
+      }
+    }
+  };
+  A.CounterApp.prototype = {};
+  A._CounterAppState.prototype = {
+    build$1(context) {
+      var _this = this, _null = null,
+        t1 = type$.JSArray_Widget;
+      return new A.Card(new A.Column(A._setArrayType([B.Text_yEa, new A.Text("Current count: " + _this.count, "h3", _null), new A.Row(A._setArrayType([new A.Button(new A._CounterAppState_build_closure(_this), B.Text_kri, _null), new A.Button(new A._CounterAppState_build_closure0(_this), B.Text_Og1, _null)], t1), _null), new A.Button(new A._CounterAppState_build_closure1(_this), B.Text_Reset_null_null, _null)], t1), _null), _null);
+    }
+  };
+  A._CounterAppState_build_closure.prototype = {
+    call$0() {
+      var t1 = this.$this;
+      t1.setState$1(new A._CounterAppState_build__closure1(t1));
+    },
+    $signature: 0
+  };
+  A._CounterAppState_build__closure1.prototype = {
+    call$0() {
+      --this.$this.count;
+    },
+    $signature: 0
+  };
+  A._CounterAppState_build_closure0.prototype = {
+    call$0() {
+      var t1 = this.$this;
+      t1.setState$1(new A._CounterAppState_build__closure0(t1));
+    },
+    $signature: 0
+  };
+  A._CounterAppState_build__closure0.prototype = {
+    call$0() {
+      this.$this.count += 5;
+    },
+    $signature: 0
+  };
+  A._CounterAppState_build_closure1.prototype = {
+    call$0() {
+      var t1 = this.$this;
+      t1.setState$1(new A._CounterAppState_build__closure(t1));
+    },
+    $signature: 0
+  };
+  A._CounterAppState_build__closure.prototype = {
+    call$0() {
+      this.$this.count = 0;
+    },
+    $signature: 0
   };
   (function aliases() {
     var _ = J.LegacyJavaScriptObject.prototype;
     _.super$LegacyJavaScriptObject$toString = _.toString$0;
+    _ = A.Element.prototype;
+    _.super$Element$mount = _.mount$1;
+    _.super$Element$update = _.update$1;
   })();
   (function installTearOffs() {
     var _static_1 = hunkHelpers._static_1,
@@ -5577,15 +6032,15 @@
     _static_1(A, "async__AsyncRun__scheduleImmediateWithTimer$closure", "_AsyncRun__scheduleImmediateWithTimer", 1);
     _static_0(A, "async___startMicrotaskLoop$closure", "_startMicrotaskLoop", 0);
     _static_1(A, "convert___defaultToEncodable$closure", "_defaultToEncodable", 2);
-    _static_0(A, "counter__render$closure", "render", 12);
-    _static_1(A, "counter__onUIEvent$closure", "onUIEvent", 13);
+    _static_0(A, "a2ui_framework___render$closure", "_render", 13);
+    _static_1(A, "a2ui_framework___onUIEvent$closure", "_onUIEvent", 14);
   })();
   (function inheritance() {
     var _mixin = hunkHelpers.mixin,
       _inherit = hunkHelpers.inherit,
       _inheritMany = hunkHelpers.inheritMany;
     _inherit(A.Object, null);
-    _inheritMany(A.Object, [A.JS_CONST, J.Interceptor, A.SafeToStringHook, J.ArrayIterator, A.Error, A.SentinelValue, A.Iterable, A.ListIterator, A.FixedLengthListMixin, A.TypeErrorDecoder, A.NullThrownFromJavaScriptException, A._StackTrace, A.Closure, A.MapBase, A.LinkedHashMapCell, A.LinkedHashMapKeyIterator, A.Rti, A._FunctionParameters, A._Type, A._TimerImpl, A.AsyncError, A._Completer, A._FutureListener, A._Future, A._AsyncCallbackEntry, A._Zone, A._HashMapKeyIterator, A.ListBase, A.Codec, A.Converter, A._JsonStringifier, A.DateTime, A.StackOverflowError, A._Exception, A.Null, A._StringStackTrace, A.StringBuffer, A.NullRejectionException]);
+    _inheritMany(A.Object, [A.JS_CONST, J.Interceptor, A.SafeToStringHook, J.ArrayIterator, A.Error, A.SentinelValue, A.Iterable, A.ListIterator, A.FixedLengthListMixin, A.TypeErrorDecoder, A.NullThrownFromJavaScriptException, A._StackTrace, A.Closure, A.MapBase, A.LinkedHashMapCell, A.LinkedHashMapKeyIterator, A._Cell, A.Rti, A._FunctionParameters, A._Type, A._TimerImpl, A.AsyncError, A._Completer, A._FutureListener, A._Future, A._AsyncCallbackEntry, A._Zone, A._HashMapKeyIterator, A.ListBase, A.Codec, A.Converter, A._JsonStringifier, A.DateTime, A.StackOverflowError, A._Exception, A.Null, A._StringStackTrace, A.StringBuffer, A.NullRejectionException, A.Widget, A.Element, A.A2uiRenderContext, A.State, A.A2uiApp]);
     _inheritMany(J.Interceptor, [J.JSBool, J.JSNull, J.JavaScriptObject, J.JavaScriptBigInt, J.JavaScriptSymbol, J.JSNumber, J.JSString]);
     _inheritMany(J.JavaScriptObject, [J.LegacyJavaScriptObject, J.JSArray, A.NativeByteBuffer, A.NativeTypedData]);
     _inheritMany(J.LegacyJavaScriptObject, [J.PlainJavaScriptObject, J.UnknownJavaScriptObject, J.JavaScriptFunction]);
@@ -5599,7 +6054,7 @@
     _inheritMany(A.TearOffClosure, [A.StaticClosure, A.BoundClosure]);
     _inheritMany(A.MapBase, [A.JsLinkedHashMap, A._HashMap]);
     _inheritMany(A.EfficientLengthIterable, [A.LinkedHashMapKeysIterable, A._HashMapKeyIterable]);
-    _inheritMany(A.Closure2Args, [A.initHooks_closure0, A._Future__propagateToListeners_handleWhenCompleteCallback_closure0, A.MapBase_mapToString_closure, A._JsonStringifier_writeMap_closure]);
+    _inheritMany(A.Closure2Args, [A.initHooks_closure0, A._Future__propagateToListeners_handleWhenCompleteCallback_closure0, A.LinkedHashMap_LinkedHashMap$from_closure, A.MapBase_mapToString_closure, A._JsonStringifier_writeMap_closure]);
     _inheritMany(A.NativeTypedData, [A.NativeByteData, A.NativeTypedArray]);
     _inheritMany(A.NativeTypedArray, [A._NativeTypedArrayOfDouble_NativeTypedArray_ListMixin, A._NativeTypedArrayOfInt_NativeTypedArray_ListMixin]);
     _inherit(A._NativeTypedArrayOfDouble_NativeTypedArray_ListMixin_FixedLengthListMixin, A._NativeTypedArrayOfDouble_NativeTypedArray_ListMixin);
@@ -5609,7 +6064,7 @@
     _inheritMany(A.NativeTypedArrayOfDouble, [A.NativeFloat32List, A.NativeFloat64List]);
     _inheritMany(A.NativeTypedArrayOfInt, [A.NativeInt16List, A.NativeInt32List, A.NativeInt8List, A.NativeUint16List, A.NativeUint32List, A.NativeUint8ClampedList, A.NativeUint8List]);
     _inherit(A._TypeError, A._Error);
-    _inheritMany(A.Closure0Args, [A._AsyncRun__scheduleImmediateJsOverride_internalCallback, A._AsyncRun__scheduleImmediateWithSetImmediate_internalCallback, A._TimerImpl_internalCallback, A._Future__addListener_closure, A._Future__prependListeners_closure, A._Future__chainCoreFuture_closure, A._Future__asyncCompleteWithValue_closure, A._Future__asyncCompleteErrorObject_closure, A._Future__propagateToListeners_handleWhenCompleteCallback, A._Future__propagateToListeners_handleValueCallback, A._Future__propagateToListeners_handleError, A._RootZone_bindCallbackGuarded_closure, A._rootHandleError_closure]);
+    _inheritMany(A.Closure0Args, [A._AsyncRun__scheduleImmediateJsOverride_internalCallback, A._AsyncRun__scheduleImmediateWithSetImmediate_internalCallback, A._TimerImpl_internalCallback, A._Future__addListener_closure, A._Future__prependListeners_closure, A._Future__chainCoreFuture_closure, A._Future__asyncCompleteWithValue_closure, A._Future__asyncCompleteErrorObject_closure, A._Future__propagateToListeners_handleWhenCompleteCallback, A._Future__propagateToListeners_handleValueCallback, A._Future__propagateToListeners_handleError, A._RootZone_bindCallbackGuarded_closure, A._rootHandleError_closure, A._CounterAppState_build_closure, A._CounterAppState_build__closure1, A._CounterAppState_build_closure0, A._CounterAppState_build__closure0, A._CounterAppState_build_closure1, A._CounterAppState_build__closure]);
     _inherit(A._AsyncCompleter, A._Completer);
     _inherit(A._RootZone, A._Zone);
     _inherit(A._IdentityHashMap, A._HashMap);
@@ -5618,6 +6073,13 @@
     _inherit(A.JsonEncoder, A.Converter);
     _inherit(A._JsonStringStringifier, A._JsonStringifier);
     _inheritMany(A.ArgumentError, [A.RangeError, A.IndexError]);
+    _inheritMany(A.Widget, [A.StatefulWidget, A.LeafWidget]);
+    _inheritMany(A.Element, [A.StatefulElement, A.SingleChildLeafElement, A.MultiChildLeafElement, A.TextLeafElement]);
+    _inheritMany(A.LeafWidget, [A.SingleChildLeafWidget, A.MultiChildLeafWidget, A.Text]);
+    _inheritMany(A.SingleChildLeafWidget, [A.Card, A.Button]);
+    _inheritMany(A.MultiChildLeafWidget, [A.Column, A.Row]);
+    _inherit(A.CounterApp, A.StatefulWidget);
+    _inherit(A._CounterAppState, A.State);
     _mixin(A._NativeTypedArrayOfDouble_NativeTypedArray_ListMixin, A.ListBase);
     _mixin(A._NativeTypedArrayOfDouble_NativeTypedArray_ListMixin_FixedLengthListMixin, A.FixedLengthListMixin);
     _mixin(A._NativeTypedArrayOfInt_NativeTypedArray_ListMixin, A.ListBase);
@@ -5628,12 +6090,12 @@
     typeUniverse: {eC: new Map(), tR: {}, eT: {}, tPV: {}, sEA: []},
     mangledGlobalNames: {int: "int", double: "double", num: "num", String: "String", bool: "bool", Null: "Null", List: "List", Object: "Object", Map: "Map", JSObject: "JSObject"},
     mangledNames: {},
-    types: ["~()", "~(~())", "@(@)", "Null(@)", "Null()", "~(Object?,Object?)", "~(@)", "@(@,String)", "@(String)", "Null(~())", "Null(Object,StackTrace)", "Object?(Object?)", "String()", "~(Object?)"],
+    types: ["~()", "~(~())", "@(@)", "Null(@)", "Null()", "~(Object?,Object?)", "~(@)", "@(@,String)", "@(String)", "Null(~())", "Null(Object,StackTrace)", "~(@,@)", "Object?(Object?)", "String()", "~(Object?)"],
     interceptorsByTag: null,
     leafTags: null,
     arrayRti: Symbol("$ti")
   };
-  A._Universe_addRules(init.typeUniverse, JSON.parse('{"PlainJavaScriptObject":"LegacyJavaScriptObject","UnknownJavaScriptObject":"LegacyJavaScriptObject","JavaScriptFunction":"LegacyJavaScriptObject","NativeArrayBuffer":"NativeByteBuffer","JSBool":{"bool":[],"TrustedGetRuntimeType":[]},"JSNull":{"TrustedGetRuntimeType":[]},"JavaScriptObject":{"JSObject":[]},"LegacyJavaScriptObject":{"JSObject":[]},"JSArray":{"List":["1"],"JSObject":[],"Iterable":["1"]},"JSArraySafeToStringHook":{"SafeToStringHook":[]},"JSUnmodifiableArray":{"JSArray":["1"],"List":["1"],"JSObject":[],"Iterable":["1"]},"JSNumber":{"double":[],"num":[]},"JSInt":{"double":[],"int":[],"num":[],"TrustedGetRuntimeType":[]},"JSNumNotInt":{"double":[],"num":[],"TrustedGetRuntimeType":[]},"JSString":{"String":[],"TrustedGetRuntimeType":[]},"LateError":{"Error":[]},"EfficientLengthIterable":{"Iterable":["1"]},"NullError":{"TypeError":[],"Error":[]},"JsNoSuchMethodError":{"Error":[]},"UnknownJsTypeError":{"Error":[]},"_StackTrace":{"StackTrace":[]},"Closure":{"Function":[]},"Closure0Args":{"Function":[]},"Closure2Args":{"Function":[]},"TearOffClosure":{"Function":[]},"StaticClosure":{"Function":[]},"BoundClosure":{"Function":[]},"RuntimeError":{"Error":[]},"JsLinkedHashMap":{"MapBase":["1","2"],"LinkedHashMap":["1","2"],"Map":["1","2"]},"LinkedHashMapKeysIterable":{"Iterable":["1"]},"NativeByteBuffer":{"JSObject":[],"TrustedGetRuntimeType":[]},"NativeTypedData":{"JSObject":[]},"NativeByteData":{"JSObject":[],"TrustedGetRuntimeType":[]},"NativeTypedArray":{"JavaScriptIndexingBehavior":["1"],"JSObject":[]},"NativeTypedArrayOfDouble":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"]},"NativeTypedArrayOfInt":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"]},"NativeFloat32List":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"],"TrustedGetRuntimeType":[],"ListBase.E":"double"},"NativeFloat64List":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"],"TrustedGetRuntimeType":[],"ListBase.E":"double"},"NativeInt16List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeInt32List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeInt8List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint16List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint32List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint8ClampedList":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint8List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"_Error":{"Error":[]},"_TypeError":{"TypeError":[],"Error":[]},"AsyncError":{"Error":[]},"_AsyncCompleter":{"_Completer":["1"]},"_Future":{"Future":["1"]},"_Zone":{"Zone":[]},"_RootZone":{"_Zone":[],"Zone":[]},"_HashMap":{"MapBase":["1","2"],"Map":["1","2"]},"_IdentityHashMap":{"_HashMap":["1","2"],"MapBase":["1","2"],"Map":["1","2"]},"_HashMapKeyIterable":{"Iterable":["1"]},"MapBase":{"Map":["1","2"]},"JsonUnsupportedObjectError":{"Error":[]},"JsonCyclicError":{"Error":[]},"double":{"num":[]},"int":{"num":[]},"AssertionError":{"Error":[]},"TypeError":{"Error":[]},"ArgumentError":{"Error":[]},"RangeError":{"Error":[]},"IndexError":{"Error":[]},"UnsupportedError":{"Error":[]},"UnimplementedError":{"Error":[]},"StateError":{"Error":[]},"ConcurrentModificationError":{"Error":[]},"StackOverflowError":{"Error":[]},"_StringStackTrace":{"StackTrace":[]},"StringBuffer":{"StringSink":[]},"Int8List":{"List":["int"],"Iterable":["int"]},"Uint8List":{"List":["int"],"Iterable":["int"]},"Uint8ClampedList":{"List":["int"],"Iterable":["int"]},"Int16List":{"List":["int"],"Iterable":["int"]},"Uint16List":{"List":["int"],"Iterable":["int"]},"Int32List":{"List":["int"],"Iterable":["int"]},"Uint32List":{"List":["int"],"Iterable":["int"]},"Float32List":{"List":["double"],"Iterable":["double"]},"Float64List":{"List":["double"],"Iterable":["double"]}}'));
+  A._Universe_addRules(init.typeUniverse, JSON.parse('{"PlainJavaScriptObject":"LegacyJavaScriptObject","UnknownJavaScriptObject":"LegacyJavaScriptObject","JavaScriptFunction":"LegacyJavaScriptObject","NativeArrayBuffer":"NativeByteBuffer","JSBool":{"bool":[],"TrustedGetRuntimeType":[]},"JSNull":{"TrustedGetRuntimeType":[]},"JavaScriptObject":{"JSObject":[]},"LegacyJavaScriptObject":{"JSObject":[]},"JSArray":{"List":["1"],"JSObject":[],"Iterable":["1"]},"JSArraySafeToStringHook":{"SafeToStringHook":[]},"JSUnmodifiableArray":{"JSArray":["1"],"List":["1"],"JSObject":[],"Iterable":["1"]},"JSNumber":{"double":[],"num":[]},"JSInt":{"double":[],"int":[],"num":[],"TrustedGetRuntimeType":[]},"JSNumNotInt":{"double":[],"num":[],"TrustedGetRuntimeType":[]},"JSString":{"String":[],"TrustedGetRuntimeType":[]},"LateError":{"Error":[]},"EfficientLengthIterable":{"Iterable":["1"]},"NullError":{"TypeError":[],"Error":[]},"JsNoSuchMethodError":{"Error":[]},"UnknownJsTypeError":{"Error":[]},"_StackTrace":{"StackTrace":[]},"Closure":{"Function":[]},"Closure0Args":{"Function":[]},"Closure2Args":{"Function":[]},"TearOffClosure":{"Function":[]},"StaticClosure":{"Function":[]},"BoundClosure":{"Function":[]},"RuntimeError":{"Error":[]},"JsLinkedHashMap":{"MapBase":["1","2"],"LinkedHashMap":["1","2"],"Map":["1","2"]},"LinkedHashMapKeysIterable":{"Iterable":["1"]},"NativeByteBuffer":{"JSObject":[],"TrustedGetRuntimeType":[]},"NativeTypedData":{"JSObject":[]},"NativeByteData":{"JSObject":[],"TrustedGetRuntimeType":[]},"NativeTypedArray":{"JavaScriptIndexingBehavior":["1"],"JSObject":[]},"NativeTypedArrayOfDouble":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"]},"NativeTypedArrayOfInt":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"]},"NativeFloat32List":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"],"TrustedGetRuntimeType":[],"ListBase.E":"double"},"NativeFloat64List":{"ListBase":["double"],"List":["double"],"JavaScriptIndexingBehavior":["double"],"JSObject":[],"Iterable":["double"],"FixedLengthListMixin":["double"],"TrustedGetRuntimeType":[],"ListBase.E":"double"},"NativeInt16List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeInt32List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeInt8List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint16List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint32List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint8ClampedList":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"NativeUint8List":{"ListBase":["int"],"List":["int"],"JavaScriptIndexingBehavior":["int"],"JSObject":[],"Iterable":["int"],"FixedLengthListMixin":["int"],"TrustedGetRuntimeType":[],"ListBase.E":"int"},"_Error":{"Error":[]},"_TypeError":{"TypeError":[],"Error":[]},"AsyncError":{"Error":[]},"_AsyncCompleter":{"_Completer":["1"]},"_Future":{"Future":["1"]},"_Zone":{"Zone":[]},"_RootZone":{"_Zone":[],"Zone":[]},"_HashMap":{"MapBase":["1","2"],"Map":["1","2"]},"_IdentityHashMap":{"_HashMap":["1","2"],"MapBase":["1","2"],"Map":["1","2"]},"_HashMapKeyIterable":{"Iterable":["1"]},"MapBase":{"Map":["1","2"]},"JsonUnsupportedObjectError":{"Error":[]},"JsonCyclicError":{"Error":[]},"double":{"num":[]},"int":{"num":[]},"AssertionError":{"Error":[]},"TypeError":{"Error":[]},"ArgumentError":{"Error":[]},"RangeError":{"Error":[]},"IndexError":{"Error":[]},"UnsupportedError":{"Error":[]},"UnimplementedError":{"Error":[]},"StateError":{"Error":[]},"ConcurrentModificationError":{"Error":[]},"StackOverflowError":{"Error":[]},"_StringStackTrace":{"StackTrace":[]},"StringBuffer":{"StringSink":[]},"Element":{"BuildContext":[]},"StatefulWidget":{"Widget":[]},"StatefulElement":{"Element":[],"BuildContext":[]},"LeafWidget":{"Widget":[]},"SingleChildLeafWidget":{"Widget":[]},"SingleChildLeafElement":{"Element":[],"BuildContext":[]},"MultiChildLeafWidget":{"Widget":[]},"MultiChildLeafElement":{"Element":[],"BuildContext":[]},"Card":{"SingleChildLeafWidget":[],"Widget":[]},"Column":{"MultiChildLeafWidget":[],"Widget":[]},"Row":{"MultiChildLeafWidget":[],"Widget":[]},"Text":{"Widget":[]},"TextLeafElement":{"Element":[],"BuildContext":[]},"Button":{"SingleChildLeafWidget":[],"Widget":[]},"CounterApp":{"StatefulWidget":[],"Widget":[]},"_CounterAppState":{"State":["CounterApp"],"State.T":"CounterApp"},"Int8List":{"List":["int"],"Iterable":["int"]},"Uint8List":{"List":["int"],"Iterable":["int"]},"Uint8ClampedList":{"List":["int"],"Iterable":["int"]},"Int16List":{"List":["int"],"Iterable":["int"]},"Uint16List":{"List":["int"],"Iterable":["int"]},"Int32List":{"List":["int"],"Iterable":["int"]},"Uint32List":{"List":["int"],"Iterable":["int"]},"Float32List":{"List":["double"],"Iterable":["double"]},"Float64List":{"List":["double"],"Iterable":["double"]}}'));
   A._Universe_addErasedTypes(init.typeUniverse, JSON.parse('{"EfficientLengthIterable":1,"NativeTypedArray":1,"Codec":2,"Converter":2}'));
   var string$ = {
     Error_: "Error handler must accept one Object or one Object and a StackTrace as arguments, and return a value of the returned future's type"
@@ -5645,8 +6107,11 @@
       Error: findType("Error"),
       Function: findType("Function"),
       Iterable_dynamic: findType("Iterable<@>"),
+      JSArray_Element: findType("JSArray<Element>"),
       JSArray_Map_String_Object: findType("JSArray<Map<String,Object>>"),
+      JSArray_Map_String_dynamic: findType("JSArray<Map<String,@>>"),
       JSArray_String: findType("JSArray<String>"),
+      JSArray_Widget: findType("JSArray<Widget>"),
       JSArray_dynamic: findType("JSArray<@>"),
       JSNull: findType("JSNull"),
       JSObject: findType("JSObject"),
@@ -5654,14 +6119,21 @@
       JavaScriptIndexingBehavior_dynamic: findType("JavaScriptIndexingBehavior<@>"),
       List_dynamic: findType("List<@>"),
       Map_String_String: findType("Map<String,String>"),
+      Map_String_dynamic: findType("Map<String,@>"),
+      MultiChildLeafWidget: findType("MultiChildLeafWidget"),
       Null: findType("Null"),
       Object: findType("Object"),
       Record: findType("Record"),
+      SingleChildLeafWidget: findType("SingleChildLeafWidget"),
       StackTrace: findType("StackTrace"),
+      State_StatefulWidget: findType("State<StatefulWidget>"),
+      StatefulWidget: findType("StatefulWidget"),
       String: findType("String"),
+      Text: findType("Text"),
       TrustedGetRuntimeType: findType("TrustedGetRuntimeType"),
       TypeError: findType("TypeError"),
       UnknownJavaScriptObject: findType("UnknownJavaScriptObject"),
+      _CounterAppState: findType("_CounterAppState"),
       _Future_dynamic: findType("_Future<@>"),
       _IdentityHashMap_of_nullable_Object_and_nullable_Object: findType("_IdentityHashMap<Object?,Object?>"),
       bool: findType("bool"),
@@ -5825,7 +6297,12 @@
     B.C_SentinelValue = new A.SentinelValue();
     B.C__RootZone = new A._RootZone();
     B.C__StringStackTrace = new A._StringStackTrace();
+    B.CounterApp_null = new A.CounterApp(null);
     B.JsonEncoder_null = new A.JsonEncoder(null);
+    B.Text_Og1 = new A.Text("Increment (+)", null, null);
+    B.Text_Reset_null_null = new A.Text("Reset", null, null);
+    B.Text_kri = new A.Text("Decrement (-)", null, null);
+    B.Text_yEa = new A.Text("Counter App", "h2", null);
     B.Type_ByteBuffer_rqD = A.typeLiteral("ByteBuffer");
     B.Type_ByteData_9dB = A.typeLiteral("ByteData");
     B.Type_Float32List_9Kz = A.typeLiteral("Float32List");
@@ -5856,7 +6333,8 @@
     $._lastPriorityCallback = null;
     $._isInCallbackLoop = false;
     $.Zone__current = B.C__RootZone;
-    $.count = 0;
+    $.___app = A._Cell$named("_app");
+    $.___surfaceId = A._Cell$named("_surfaceId");
   })();
   (function lazyInitializers() {
     var _lazyFinal = hunkHelpers.lazyFinal;
@@ -5946,11 +6424,11 @@
   Function.prototype.call$1 = function(a) {
     return this(a);
   };
-  Function.prototype.call$0 = function() {
-    return this();
-  };
   Function.prototype.call$2 = function(a, b) {
     return this(a, b);
+  };
+  Function.prototype.call$0 = function() {
+    return this();
   };
   Function.prototype.call$3 = function(a, b, c) {
     return this(a, b, c);
